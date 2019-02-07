@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<arg name="vocabulary_path" default="$(find ORB_SLAM2v2)/Vocabulary/ORBvoc.txt"/>
+<arg name="settings_path" default="$(find ORB_SLAM2v2)/config/Asus.yaml"/>
+<arg name="localization"  default="false"/>
+
+<node pkg="tf" type="static_transform_publisher" name="world_to_map" 
+    args="0.0 0.0 0.0 0.0 0.0 0.0 /world /map 100" />
+
+<node pkg="tf" type="static_transform_publisher" name="base_link_to_camera_link" 
+    args="0.0 0.0 0.0 0.0 0.0 0.0 /base_link /camera_link 100" />
+
+
+
+
+<node name="rgbd_node" pkg="ORB_SLAM2v2" type="rgbd_node" args="$(arg vocabulary_path) $(arg settings_path)" output="screen">
+	<!--arg name="vocabulary_path" value="$(arg vocabulary_path)"/-->
+	<!--arg name="settings_path" value="$(arg settings_path)"/-->
+	<param name="publish_tf"		type="bool"	value="false"/>
+	<param name="publish_odom	"	type="bool"	value="false"/>
+	<param name="mapping"			type="bool"	value="true"/>
+	<param name="build_octomap"		type="bool"	value="true"/>
+	<param name="mapBinaryPath"	type="string"	value="$(find ORB_SLAM2v2)/orbmap.bin"/>
+	<param name="mapOctomapPath"	type="string"	value="$(find ORB_SLAM2v2)/global_octomap.bt"/>
+	<param name="mapPCLPath"	type="string"	value="$(find ORB_SLAM2v2)/optimized_pointcloud.pcd"/>
+	<param name="ClientId"		type="int"	value="0"/>
+	
+</node>     
+
+<include file="$(find openni2_launch)/launch/openni2.launch"/>
+
+</launch>
+
+	
+
+
+
+
