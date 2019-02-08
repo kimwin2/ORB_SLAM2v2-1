@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   std_msgs
   std_srvs
-  ccmslam_msgs
 )
 
 IF(NOT CMAKE_BUILD_TYPE)
@@ -76,7 +75,7 @@ add_service_files(
    MapGraph.srv
    MapSave.srv
    MapLoad.srv
-   )
+)
 
 
 
@@ -102,7 +101,6 @@ catkin_package(
 #  DEPENDS system_lib
   CATKIN_DEPENDS
     std_srvs
-    ccmslam_msgs
 )
 
 include_directories(
@@ -117,6 +115,7 @@ ${Pangolin_INCLUDE_DIRS}
 ${PCL_INCLUDE_DIRS}
 ${OCTOMAP_INCLUDE_DIRS}
 )
+
 
 # Stereo
 add_executable(stereo_node
@@ -233,45 +232,6 @@ ${PCL_LIBRARIES}
 ${OCTOMAP_LIBRARIES}
 )
 
-add_executable(server_test 
-src/ServerSystem.cc
-src/System.cc
-src/Tracking.cc
-src/LocalMapping.cc
-src/LoopClosing.cc
-src/ORBextractor.cc
-src/ORBmatcher.cc
-src/FrameDrawer.cc
-src/Converter.cc
-src/MapPoint.cc
-src/KeyFrame.cc
-src/Map.cc
-src/MapDrawer.cc
-src/Optimizer.cc
-src/PnPsolver.cc
-src/Frame.cc
-src/KeyFrameDatabase.cc
-src/Sim3Solver.cc
-src/Initializer.cc
-src/Viewer.cc
-src/pointcloudmapping.cc
-src/ORBParams.cc
-src/ServerMap.cc
-src/ServerViewer.cc
-)
-
-
-target_link_libraries(server_test
-${catkin_LIBRARIES}
-${OpenCV_LIBS}
-${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
-${CATKIN_DEVEL_PREFIX}/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-${PCL_LIBRARIES}
-${OCTOMAP_LIBRARIES}
-)
-
 add_executable(server_node
 src/Converter.cc
 src/Frame.cc
@@ -298,4 +258,20 @@ ${CATKIN_DEVEL_PREFIX}/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 ${PCL_LIBRARIES}
 ${OCTOMAP_LIBRARIES}
+)
+
+add_dependencies(stereo_node
+   ORB_SLAM2v2_generate_messages_cpp
+)
+
+add_dependencies(mono_node
+   ORB_SLAM2v2_generate_messages_cpp
+)
+
+add_dependencies(rgbd_node 
+   ORB_SLAM2v2_generate_messages_cpp
+)
+
+add_dependencies(server_node
+   ORB_SLAM2v2_generate_messages_cpp
 )

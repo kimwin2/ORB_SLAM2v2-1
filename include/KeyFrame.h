@@ -32,10 +32,6 @@
 #include <mutex>
 #include "BoostArchiver.h"
 
-#include <ccmslam_msgs/KF.h>
-#include <ccmslam_msgs/KFred.h>
-#include <ccmslam_msgs/Map.h>
-
 namespace ORB_SLAM2
 {
 
