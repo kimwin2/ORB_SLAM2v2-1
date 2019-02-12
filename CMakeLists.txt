@@ -80,10 +80,10 @@ add_service_files(
 
 
 generate_messages(
-DEPENDENCIES 
-std_msgs
-geometry_msgs
-sensor_msgs
+   DEPENDENCIES 
+   std_msgs
+   geometry_msgs
+   sensor_msgs
 )
 
 
@@ -142,8 +142,9 @@ src/Viewer.cc
 src/pointcloudmapping.cc
 src/ORBParams.cc
 src/ServerMap.cc
-
+src/StreamThread.cc
 )
+
 target_link_libraries(stereo_node 
 ${catkin_LIBRARIES}
 ${OpenCV_LIBS}
@@ -180,9 +181,9 @@ src/Viewer.cc
 src/pointcloudmapping.cc
 src/ORBParams.cc
 src/ServerMap.cc
-
-
+src/StreamThread.cc
 )
+
 target_link_libraries(mono_node 
 ${catkin_LIBRARIES}
 ${OpenCV_LIBS}
@@ -218,6 +219,7 @@ src/Viewer.cc
 src/pointcloudmapping.cc
 src/ORBParams.cc
 src/ServerMap.cc
+src/StreamThread.cc
 )
 
 
@@ -247,6 +249,7 @@ src/MapDrawer.cc
 src/ros_server.cc
 src/ServerMap.cc
 src/ServerViewer.cc
+src/StreamThread.cc
 )
 
 target_link_libraries(server_node

@@ -68,7 +68,7 @@ void PointCloudMapping::shutdown()
 void PointCloudMapping::insertKeyFrame(KeyFrame* kf, cv::Mat& color, cv::Mat& depth)
 {
 
-    cout<<"receive a keyframe, id = "<<kf->mnId<<endl;
+    //cout<<"receive a keyframe, id = "<<kf->mnId<<endl;
     //cout<<kf->GetPose()<<endl;
 
     unique_lock<mutex> lck(keyframeMutex);
@@ -77,6 +77,7 @@ void PointCloudMapping::insertKeyFrame(KeyFrame* kf, cv::Mat& color, cv::Mat& de
     colorImgs.push_back( color.clone() );
     depthImgs.push_back( depth.clone() );
     keyFrameUpdated.notify_one();
+
 }
 
 pcl::PointCloud< PointCloudMapping::PointT >::Ptr PointCloudMapping::generatePointCloud(KeyFrame* kf, cv::Mat& color, cv::Mat& depth)

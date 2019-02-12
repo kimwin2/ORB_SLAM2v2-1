@@ -91,6 +91,7 @@ private:
 private:
     map<unsigned int, ServerMapPoint*> mspServerMapPoints;
     map<unsigned int, ServerKeyFrame*> mspServerKeyFrames;
+    unsigned int KeyFrameOrigin=0;
 };
 
 }

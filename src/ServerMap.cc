@@ -68,6 +68,8 @@ void ServerMap::UpdateMapPoint(ServerMapPoint *smp){
 void ServerMap::AddKeyFrame(ServerKeyFrame *skf){
     unique_lock<mutex> lock(mMutexMap);
     mspServerKeyFrames.insert({skf->GetKeyFrameMnId(), skf});
+    if(KeyFrameOrigin == 0)
+        KeyFrameOrigin = skf->GetKeyFrameMnId();
 }
 
 void ServerMap::EraseKeyFrame(long unsigned int mnId){

@@ -137,6 +137,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->SetViewer(mpViewer);
     }
 
+    //Initialize the StreamThread and launch
+    mpSendClassToServer = new SendClassToServer(params.getNodeHandle(), params.getClientId(), mpMap);
+    mptSendClassToServer = new thread(&SendClassToServer::Run, mpSendClassToServer);
+    mpMap->SetSendClassToServer(mpSendClassToServer);
+
     //Set pointers between threads
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);

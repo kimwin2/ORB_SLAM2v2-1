@@ -3,12 +3,16 @@
 #include "ServerMap.h"
 #include "ServerViewer.h"
 #include "ORBParams.h"
+#include "KeyFrame.h"
+#include "MapPoint.h"
 
 #include <ORB_SLAM2v2/MP.h>
 #include <ORB_SLAM2v2/KF.h>
+#include "std_msgs/String.h"
 #include <boost/bind.hpp>
 #include <thread>
 #include <string>
+#include "BoostArchiver.h"
 
 #define NUMBER_OF_CLIENTS 1
 #define INSERT 0
@@ -67,6 +71,19 @@ public:
             sm->UpdateMapPoint(new ServerMapPoint(msg->UID, msg->mnId, Ow));
     }
 
+    void KeyFrameData(const std_msgs::String::ConstPtr& msg){
+        stringstream sarray(msg->data);
+        KeyFrame *kf = new KeyFrame();
+        {
+            boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
+            ia >> kf;
+        }
+        //cout << "mnid : " << kf->mnId << endl;
+    }
+
+    void MapPointData(const std_msgs::String::ConstPtr& msg){
+
+    }
     ServerMap *sm;
     MapDrawer *mpSMapDrawer;
     string strSettingsFile;
@@ -100,9 +117,13 @@ int main(int argc, char *argv[]){
 
     string kfName = "KEYFRAME" + to_string(ClientId);
     string mpName = "MAPPOINT" + to_string(ClientId);
+    string kfDataName = "KEYFRAME_" + to_string(ClientId);
+    string mpDataName = "MAPPOINT_" + to_string(ClientId);
 
     ros::Subscriber kf_sub = n.subscribe(kfName, 1000, &Communicator::KeyFrameCallback, &ccom);
     ros::Subscriber mp_sub = n.subscribe(mpName, 1000, &Communicator::MapPointCallback, &ccom);
+    ros::Subscriber kf_data_sub = n.subscribe(kfDataName, 1000, &Communicator::KeyFrameData, &ccom);
+    ros::Subscriber mp_data_sub = n.subscribe(mpDataName, 1000, &Communicator::MapPointData, &ccom);
 
     ros::spin();
 

@@ -32,12 +32,15 @@
 #include <ORB_SLAM2v2/MP.h>
 #include <ORB_SLAM2v2/KF.h>
 #include <ORB_SLAM2v2/ServerMap.h>
+#include "std_msgs/String.h"
+#include "StreamThread.h"
 
 namespace ORB_SLAM2
 {
 
 class MapPoint;
 class KeyFrame;
+class SendClassToServer;
 
 class Map
 {
@@ -67,6 +70,8 @@ public:
     void SetNodeHandle(ros::NodeHandle nh);
     int GetClientId();
 
+    void SetSendClassToServer(SendClassToServer* pSendClassToServer);
+
     void clear();
 
     vector<KeyFrame*> mvpKeyFrameOrigins;
@@ -75,6 +80,7 @@ public:
 
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
+    std::mutex mMutexStreamThread;
 
 
 private:
@@ -87,6 +93,8 @@ protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
 
+    std::vector<KeyFrame*> KFqueue;
+
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     long unsigned int mnMaxKFid;
@@ -97,9 +105,14 @@ protected:
 
     ros::NodeHandle n;
     ros::Publisher kf_pub;
+    ros::Publisher kf_data_pub;
     ros::Publisher mp_pub;
+    ros::Publisher mp_data_pub;
 
     std::mutex mMutexMap;
+
+    // Transfer information about map information from client to server.
+    SendClassToServer* mpSendClassToServer;
 };
 
 } //namespace ORB_SLAM

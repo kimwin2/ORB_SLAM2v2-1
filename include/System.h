@@ -37,6 +37,7 @@
 #include "Viewer.h"
 #include "pointcloudmapping.h"//PCL
 #include "ORBParams.h"
+#include "StreamThread.h"
 
 #include "BoostArchiver.h"
 // for map file io
@@ -161,6 +162,9 @@ private:
     string mapfile;
     bool is_save_map;
 
+    // Transfer information about map information from client to server.
+    SendClassToServer* mpSendClassToServer;
+
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
     // performs relocalization if tracking fails.
@@ -184,6 +188,7 @@ private:
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
+    std::thread* mptSendClassToServer;
 
     // Reset flag
     std::mutex mMutexReset;

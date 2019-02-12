@@ -19,6 +19,8 @@
 */
 
 #include "Map.h"
+#include "StreamThread.h"
+#include <thread>
 
 #include<mutex>
 
@@ -74,8 +76,10 @@ void Map::AddKeyFrame(KeyFrame *pKF)
 
     msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
 
-
     kf_pub.publish(msg);
+
+    mpSendClassToServer->SetKeyFrame(pKF);
+
 }
 
 void Map::AddMapPoint(MapPoint *pMP)
@@ -242,11 +246,16 @@ void Map::SetClientId(int id){
     string mpName = "MAPPOINT" + to_string(id);
 
     kf_pub = n.advertise<ORB_SLAM2v2::KF>(kfName, 1000);
-    mp_pub = n.advertise<ORB_SLAM2v2::MP>("MAPPOINT0", 1000);
+    mp_pub = n.advertise<ORB_SLAM2v2::MP>(mpName, 1000);
 }
 
 int Map::GetClientId(){
     return ClientId;
+}
+
+void Map::SetSendClassToServer(SendClassToServer* pSendClassToServer){
+    mpSendClassToServer = pSendClassToServer;
+
 }
 
 void Map::clear()
