@@ -20,8 +20,8 @@
 	<!--arg name="settings_path" value="$(arg settings_path)"/-->
 	<param name="publish_tf"		type="bool"	value="false"/>
 	<param name="publish_odom	"	type="bool"	value="false"/>
-	<param name="mapping"			type="bool"	value="true"/>
-	<param name="build_octomap"		type="bool"	value="true"/>
+	<param name="mapping"			type="bool"	value="false"/>
+	<param name="build_octomap"		type="bool"	value="false"/>
 	<param name="mapBinaryPath"	type="string"	value="$(find ORB_SLAM2v2)/orbmap.bin"/>
 	<param name="mapOctomapPath"	type="string"	value="$(find ORB_SLAM2v2)/global_octomap.bt"/>
 	<param name="mapPCLPath"	type="string"	value="$(find ORB_SLAM2v2)/optimized_pointcloud.pcd"/>

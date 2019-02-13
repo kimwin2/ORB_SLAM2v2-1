@@ -37,7 +37,7 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     mspKeyFrames.insert(pKF);
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
-
+/*
     ORB_SLAM2v2::KF msg;
 
     vector<long unsigned int> cl;
@@ -77,7 +77,7 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
 
     kf_pub.publish(msg);
-
+*/
     mpSendClassToServer->SetKeyFrame(pKF);
 
 }

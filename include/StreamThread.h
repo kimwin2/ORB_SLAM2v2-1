@@ -26,6 +26,7 @@ public:
     void RunKeyFrame();
     void RunMapPoint();
     void Run();
+    int GetClientId();
 
     queue<KeyFrame*> mvpKF;
     queue<MapPoint*> mvpMP;
@@ -48,6 +49,8 @@ private:
     bool mbFinishRequested;
     bool mbFinished;
     std::mutex mMutexFinish;
+
+    int ClientId;
 };
 
 }

@@ -30,4 +30,4 @@ uint64 mnRelocQuery
 int32 mnRelocWords
 float32 mRelocScore
 
-
+string mDescriptors
