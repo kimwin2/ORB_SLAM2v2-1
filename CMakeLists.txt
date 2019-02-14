@@ -66,6 +66,7 @@ add_message_files(
   KF.msg
   MP.msg
   ServerMap.msg
+  Observation.msg
 )
 
 

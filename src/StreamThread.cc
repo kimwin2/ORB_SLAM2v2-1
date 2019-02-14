@@ -70,14 +70,25 @@ void SendClassToServer::RunKeyFrame(){
 
     msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
 
+    vector<MapPoint*> mvpMP = pKF->GetMapPointMatches();
+    msg.mvpMapPoints.resize(mvpMP.size());
+    for(int i = 0; i < mvpMP.size(); i++){
+        if(mvpMP[i]==NULL){
+            msg.mvpMapPoints[i] = 0;
+        }else{
+            msg.mvpMapPoints[i] = mvpMP[i]->UID;
+        }        
+    }
+
     ostringstream sarray;
     KeyFrame &kf = *pKF;
-    cv::Mat desc = kf.mDescriptors.clone();
+    cv::Mat desc = kf.mDescriptorsCopy;
     {
         boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
         oa << desc;
+        oa << kf.mvKeysUn;
+        oa << kf.mFeatVec;
     }
-    
     msg.mDescriptors = sarray.str();
     kf_data_pub.publish(msg);
 }
@@ -91,6 +102,10 @@ void SendClassToServer::Run(){
             pKF = mvpKF.front();
             RunKeyFrame();
             mvpKF.pop();
+        }
+
+        if(!mvpMP.empty()){
+            
         }
 
         if(CheckFinish())

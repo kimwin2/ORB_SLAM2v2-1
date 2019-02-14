@@ -37,47 +37,6 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     mspKeyFrames.insert(pKF);
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
-/*
-    ORB_SLAM2v2::KF msg;
-
-    vector<long unsigned int> cl;
-    vector<long unsigned int> lel;
-    cv::Mat cvt = pKF->GetPoseInverse();
-    cv::Mat crt = pKF->GetCameraCenter();
-    int pF = -1;
-    if(pKF->GetParent())
-        pF = pKF->GetParent()->mnId;
-
-    vector<KeyFrame*> pK = pKF->GetCovisiblesByWeight(100);
-    set<KeyFrame*> le = pKF->GetLoopEdges();
-    if(!pK.empty()){
-        for(vector<KeyFrame*>::iterator itx = pK.begin(); itx != pK.end(); itx++){
-            unsigned int pkMnid = (*itx)->mnId;
-            cl.push_back(pkMnid);
-        }
-    }
-
-    if(!le.empty()){
-        for(set<KeyFrame*>::iterator itx = le.begin(); itx != le.end(); itx++){
-            lel.push_back((*itx)->mnId);
-        }
-    }
-
-    msg.command = 0;
-    msg.mClientId = GetClientId();
-    msg.mnId = pKF->mnId;
-    msg.Parent = pF;
-    msg.CovisibleList.swap(cl);
-    msg.LoopEdgeList.swap(lel);
-    msg.Twc = {cvt.at<float>(0,0),cvt.at<float>(0,1),cvt.at<float>(0,2),cvt.at<float>(0,3),
-    cvt.at<float>(1,0),cvt.at<float>(1,1),cvt.at<float>(1,2),cvt.at<float>(1,3),
-    cvt.at<float>(2,0),cvt.at<float>(2,1),cvt.at<float>(2,2),cvt.at<float>(2,3),
-    cvt.at<float>(3,0),cvt.at<float>(3,1),cvt.at<float>(3,2),cvt.at<float>(3,3)};
-
-    msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
-
-    kf_pub.publish(msg);
-*/
     mpSendClassToServer->SetKeyFrame(pKF);
 
 }
@@ -94,6 +53,24 @@ void Map::AddMapPoint(MapPoint *pMP)
     msg.UID = pMP->UID;
     msg.mnId = pMP->mnId;
     msg.mWorldPos = {cvt.at<float>(0),cvt.at<float>(1),cvt.at<float>(2)};
+
+    map<KeyFrame*,size_t> mOb = pMP->GetObservations();
+    for(map<KeyFrame*,size_t>::iterator itx = mOb.begin(); itx != mOb.end(); itx++){
+        ORB_SLAM2v2::Observation ob;
+        ob.keyframe = (*itx).first->mnId;
+        ob.idx = (*itx).second;
+        msg.mObservations.push_back(ob);
+    }
+    cv::Mat mDescriptor = pMP->GetDescriptor();
+    for(int i=0; i<32; i++){
+        msg.mDescriptor[i] = mDescriptor.at<unsigned char>(i);
+    }
+
+    msg.nNextId = pMP->nNextId;
+    msg.mnFirstKFid = pMP->mnFirstKFid;
+    msg.mnFirstFrame = pMP->mnFirstFrame;
+    msg.nObs = pMP->nObs;
+
     mp_pub.publish(msg);
 }
 
@@ -165,6 +142,16 @@ void Map::UpdateKeyFrame(KeyFrame *pKF){
     cvt.at<float>(3,0),cvt.at<float>(3,1),cvt.at<float>(3,2),cvt.at<float>(3,3)};
 
     msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
+
+    vector<MapPoint*> mvpMP = pKF->GetMapPointMatches();
+    msg.mvpMapPoints.resize(mvpMP.size());
+    for(int i = 0; i < mvpMP.size(); i++){
+        if(mvpMP[i]==NULL){
+            msg.mvpMapPoints[i] = 0;
+        }else{
+            msg.mvpMapPoints[i] = mvpMP[i]->UID;
+        }        
+    }
     kf_pub.publish(msg);
 }
 
@@ -178,8 +165,12 @@ void Map::UpdateMapPoint(MapPoint *pMP){
     msg.UID = pMP->UID;
     msg.mnId = pMP->mnId;
     msg.mWorldPos = {cvt.at<float>(0),cvt.at<float>(1),cvt.at<float>(2)};
-    mp_pub.publish(msg);
 
+    cv::Mat mDescriptor = pMP->GetDescriptor();
+    for(int i=0; i<32; i++){
+        msg.mDescriptor[i] = mDescriptor.at<unsigned char>(i);
+    }
+    mp_pub.publish(msg);
 }
 
 void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)

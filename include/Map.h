@@ -31,6 +31,7 @@
 #include "ros/ros.h"
 #include <ORB_SLAM2v2/MP.h>
 #include <ORB_SLAM2v2/KF.h>
+#include <ORB_SLAM2v2/Observation.h>
 #include <ORB_SLAM2v2/ServerMap.h>
 #include "std_msgs/String.h"
 #include "StreamThread.h"

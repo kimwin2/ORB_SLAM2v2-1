@@ -2,6 +2,28 @@
 
 namespace ORB_SLAM2{
 
+ServerMapPoint::ServerMapPoint(const ORB_SLAM2v2::MP::ConstPtr& msg){
+    float ow[3] = {msg->mWorldPos[0],msg->mWorldPos[1],msg->mWorldPos[2]};
+    cv::Mat Ow(3,1,CV_32F, ow);
+    UID = msg->UID;
+    mnId = msg->mnId;
+    mWorldPos = Ow.clone();
+
+    nNextId = msg->nNextId;
+    mnFirstKFid = msg->mnFirstKFid;
+    mnFirstFrame = msg->mnFirstFrame;
+    nObs = msg->nObs;
+    vector<ORB_SLAM2v2::Observation> mObs = msg->mObservations;
+    for(vector<ORB_SLAM2v2::Observation>::iterator itx = mObs.begin(); itx != mObs.end(); itx++){
+        mObservations[itx->keyframe] = itx->idx;
+    }
+
+    mDescriptor.create(1,32,CV_8U);
+    for(int i=0;i<32;i++){
+        mDescriptor.at<unsigned char>(i) = msg->mDescriptor[i];
+    }
+}
+
 ServerMapPoint::ServerMapPoint(unsigned int uid, unsigned int mnid, cv::Mat pos){
     UID = uid;
     mnId = mnid;
@@ -14,6 +36,50 @@ cv::Mat ServerMapPoint::GetWorldPos(){
 
 unsigned int ServerMapPoint::GetUID(){
     return UID;
+}
+
+ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
+    stringstream sarray(msg->mDescriptors);
+    cout << "before serialization " << endl;
+    {
+        boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
+        ia >> mDescriptors;
+        ia >> mvKeysUn;
+        ia >> mFeatVec;
+    }
+
+    float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
+    msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
+    msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
+    msg->Twc[12],msg->Twc[13],msg->Twc[14],msg->Twc[15]};
+    float ow[3] = {msg->Ow[0],msg->Ow[1],msg->Ow[2]};
+    cv::Mat mTwc(4,4,CV_32F,twc);
+    cv::Mat mOw(3,1,CV_32F,ow);
+    vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
+    vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
+    vector<long unsigned int> mvpMP(begin(msg->mvpMapPoints), end(msg->mvpMapPoints));
+
+    mnId = msg->mnId;
+    Twc = mTwc.clone();
+    Ow = mOw.clone();
+    parentId = msg->Parent;
+    CovisibleList.swap(cl);
+    LoopEdgeList.swap(lel);
+    mvpMapPoints.swap(mvpMP);
+}
+
+ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
+     cv::Mat desc, DBoW2::FeatureVector mF, vector<cv::KeyPoint> mvK, vector<unsigned long int> mvpMP){
+    mnId = mnid;
+    Twc = twc.clone();
+    Ow = ow.clone();
+    CovisibleList.swap(clist);
+    parentId = parentid;
+    LoopEdgeList.swap(llist);
+    mDescriptors = desc.clone();
+    mFeatVec.swap(mF);
+    mvKeysUn.swap(mvK);
+    mvpMapPoints.swap(mvpMP);
 }
 
 ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist){
@@ -49,6 +115,18 @@ vector<long unsigned int> ServerKeyFrame::GetLoopEdgeList(){
     return LoopEdgeList;
 }
 
+vector<long unsigned int> ServerKeyFrame::GetMapPoints(){
+    return mvpMapPoints;
+}
+
+void ServerKeyFrame::Swap(ServerKeyFrame *skf){
+    Twc = skf->Twc.clone();
+    Ow = skf->Ow.clone();
+    CovisibleList = skf->GetCovisibleList();
+    LoopEdgeList = skf->GetLoopEdgeList();
+    mvpMapPoints = skf->GetMapPoints();
+}
+
 void ServerMap::AddMapPoint(ServerMapPoint *smp){
     unique_lock<mutex> lock(mMutexMap);
     mspServerMapPoints.insert({smp->GetUID(), smp});
@@ -79,8 +157,8 @@ void ServerMap::EraseKeyFrame(long unsigned int mnId){
 
 void ServerMap::UpdateKeyFrame(ServerKeyFrame *skf){
     unique_lock<mutex> lock(mMutexMap);
-    mspServerKeyFrames.erase(skf->mnId);
-    mspServerKeyFrames.insert({skf->GetKeyFrameMnId(), skf});
+    if(mspServerKeyFrames.find(skf->mnId) != mspServerKeyFrames.end())
+        mspServerKeyFrames.at(skf->mnId)->Swap(skf);
 }
 
 map<unsigned int, ServerMapPoint*> ServerMap::GetAllMapPoints(){

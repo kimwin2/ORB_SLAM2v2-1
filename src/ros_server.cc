@@ -5,6 +5,8 @@
 #include "ORBParams.h"
 #include "KeyFrame.h"
 #include "MapPoint.h"
+#include "Thirdparty/DBoW2/DBoW2/BowVector.h"
+#include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
 #include <ORB_SLAM2v2/MP.h>
 #include <ORB_SLAM2v2/KF.h>
@@ -51,6 +53,7 @@ public:
         cv::Mat Ow(3,1,CV_32F,ow);
         vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
         vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
+        cout << "Callback mnid : " << msg->mnId << endl;
         if(msg->command == INSERT)
             sm->AddKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
         else if(msg->command == ERASE)
@@ -60,28 +63,30 @@ public:
     }
 
     void MapPointCallback(const ORB_SLAM2v2::MP::ConstPtr& msg){
-        float ow[3] = {msg->mWorldPos[0],msg->mWorldPos[1],msg->mWorldPos[2]};
-        cv::Mat Ow(3,1,CV_32F, ow);
-        mnId = msg->mnId;
         if(msg->command == INSERT)
-            sm->AddMapPoint(new ServerMapPoint(msg->UID, msg->mnId, Ow));
+            sm->AddMapPoint(new ServerMapPoint(msg));
         else if(msg->command == ERASE)
             sm->EraseMapPoint(msg->UID);
         else if(msg->command == UPDATE)
-            sm->UpdateMapPoint(new ServerMapPoint(msg->UID, msg->mnId, Ow));
+            sm->UpdateMapPoint(new ServerMapPoint(msg));
+        if(msg->command == INSERT)
+            cout << (int)msg->mDescriptor[0] << endl;
     }
 
     void KeyFrameData(const ORB_SLAM2v2::KF::ConstPtr& msg){
         stringstream sarray(msg->mDescriptors);
-        KeyFrame *kf = new KeyFrame();
+        cout << "before serialization " << endl;
         cv::Mat desc;
+        DBoW2::FeatureVector mFeatVec;
+        vector<cv::KeyPoint> mvKeysUn;
         {
             boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
             ia >> desc;
+            ia >> mvKeysUn;
+            ia >> mFeatVec;
         }
-        //cout << "mnid : " << kf->mnId << endl;
-        cout << sarray.str() << endl;
-
+        cout << "after serialization " << endl;
+        cout << "mnId : " << msg->mnId << endl;
         float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
         msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
         msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
@@ -91,12 +96,15 @@ public:
         cv::Mat Ow(3,1,CV_32F,ow);
         vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
         vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
-        if(msg->command == INSERT)
-            sm->AddKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
-        else if(msg->command == ERASE)
+        vector<long unsigned int> mvpMP(begin(msg->mvpMapPoints), end(msg->mvpMapPoints));
+        if(msg->command == INSERT){
+            sm->AddKeyFrame(new ServerKeyFrame(msg));
+        }else if(msg->command == ERASE){
             sm->EraseKeyFrame(msg->mnId);
-        else if(msg->command == UPDATE)
+        }else if(msg->command == UPDATE){
             sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
+        }
+        cout << "end KeyFrameData " << endl;
     }
 
     void MapPointData(const std_msgs::String::ConstPtr& msg){

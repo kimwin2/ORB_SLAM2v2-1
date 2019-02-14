@@ -31,3 +31,5 @@ int32 mnRelocWords
 float32 mRelocScore
 
 string mDescriptors
+
+uint64[] mvpMapPoints
