@@ -28,6 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "ServerMap.h"
 
 #include <mutex>
 #include "BoostArchiver.h"
@@ -120,6 +121,7 @@ public:
 public:
     // for serialization
     KeyFrame(); // Default constructor for serialization, need to deal with const member
+    KeyFrame(ServerKeyFrame* skf, Map *pMap); // Create map to send a map to server
     void SetORBvocabulary(ORBVocabulary *porbv) {mpORBvocabulary=porbv;}
 private:
     // serialize is recommended to be private

@@ -35,7 +35,7 @@ private:
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version);
 
-private:
+public:
     unsigned int UID;
     unsigned int mnId;
     cv::Mat mWorldPos;
@@ -52,6 +52,7 @@ class ServerKeyFrame
 {
 public:
     ServerKeyFrame(){};
+    
     ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg);
     ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist);
     ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
@@ -74,7 +75,7 @@ private:
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version);
 
-private:
+public:
     cv::Mat Twc;
     cv::Mat Ow;
     vector<long unsigned int> CovisibleList;
@@ -85,6 +86,33 @@ private:
     DBoW2::FeatureVector mFeatVec;
     vector<cv::KeyPoint> mvKeysUn;
     vector<long unsigned int> mvpMapPoints;
+
+    long unsigned int nNextId;
+    long unsigned int mnFrameId;
+
+    double mTimeStamp;
+
+    // Grid (to speed up feature matching)
+    int mnGridCols;
+    int mnGridRows;
+    float mfGridElementWidthInv;
+    float mfGridElementHeightInv;
+
+    // Variables used by the tracking
+    long unsigned int mnTrackReferenceForFrame;
+    long unsigned int mnFuseTargetForKF;
+
+    // Variables used by the local mapping
+    long unsigned int mnBALocalForKF;
+    long unsigned int mnBAFixedForKF;
+
+    // Variables used by the keyframe database
+    long unsigned int mnLoopQuery;
+    int mnLoopWords;
+    float mLoopScore;
+    long unsigned int mnRelocQuery;
+    int mnRelocWords;
+    float mRelocScore;
 };
 
 class ServerMap

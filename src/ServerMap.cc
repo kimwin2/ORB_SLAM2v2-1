@@ -40,7 +40,6 @@ unsigned int ServerMapPoint::GetUID(){
 
 ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     stringstream sarray(msg->mDescriptors);
-    cout << "before serialization " << endl;
     {
         boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
         ia >> mDescriptors;
@@ -66,6 +65,22 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     CovisibleList.swap(cl);
     LoopEdgeList.swap(lel);
     mvpMapPoints.swap(mvpMP);
+
+    nNextId = msg->nNextId;
+    mnFrameId = msg->mnFrameId;
+    mnGridCols = msg->mnGridCols;
+    mnGridRows = msg->mnGridRows;
+    mfGridElementWidthInv = msg->mfGridElementWidthInv;
+    mfGridElementHeightInv = msg->mfGridElementHeightInv;
+    mnTrackReferenceForFrame = msg->mnTrackReferenceForFrame;
+    mnFuseTargetForKF = msg->mnFuseTargetForKF;
+    mnBALocalForKF = msg->mnBALocalForKF;
+    mnBAFixedForKF = msg->mnBAFixedForKF;
+    mnLoopQuery = msg->mnLoopQuery;
+    mnLoopWords = msg->mnLoopWords;
+    mLoopScore = msg->mLoopScore;
+    mnRelocQuery = msg->mnRelocQuery;
+    mRelocScore = msg->mRelocScore;
 }
 
 ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
@@ -153,6 +168,7 @@ void ServerMap::AddKeyFrame(ServerKeyFrame *skf){
 void ServerMap::EraseKeyFrame(long unsigned int mnId){
     unique_lock<mutex> lock(mMutexMap);
     mspServerKeyFrames.erase(mnId);
+    cout << "Erase KeyFrame ID : " << mnId << endl;
 }
 
 void ServerMap::UpdateKeyFrame(ServerKeyFrame *skf){

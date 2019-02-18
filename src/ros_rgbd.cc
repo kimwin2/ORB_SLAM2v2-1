@@ -275,6 +275,9 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
 
+    string rcv = "CLIENT_MAP" + to_string(ClientId);
+    ros::Subscriber rcv_map = n.subscribe(rcv, 1000, &System::ReceiveMapCallback, &SLAM);
+
     ros::spin();
 
     // Stop all threads

@@ -74,6 +74,20 @@ void Map::AddMapPoint(MapPoint *pMP)
     mp_pub.publish(msg);
 }
 
+void Map::AddKeyFrame(map<unsigned int, KeyFrame*> mspKFs){
+    unique_lock<mutex> lock(mMutexMap);
+    for(map<unsigned int,KeyFrame*>::iterator itx = mspKFs.begin(); itx != mspKFs.end(); itx++){
+        mspKeyFrames.insert(itx->second);
+    }
+}
+
+void Map::AddMapPoint(map<unsigned int, MapPoint*> mspMPs){
+    unique_lock<mutex> lock(mMutexMap);
+    for(map<unsigned int,MapPoint*>::iterator itx = mspMPs.begin(); itx != mspMPs.end(); itx++){
+        mspMapPoints.insert(itx->second);
+    }
+}
+
 void Map::EraseMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -271,8 +285,11 @@ void Map::serialize(Archive &ar, const unsigned int version)
     ar & mspMapPoints;
     ar & mvpKeyFrameOrigins;
     ar & mspKeyFrames;
+    cout << "3" << endl;
     ar & mvpReferenceMapPoints;
+    cout << "4" << endl;
     ar & mnMaxKFid & mnBigChangeIdx;
+    cout << "5" << endl;
 }
 template void Map::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void Map::serialize(boost::archive::binary_oarchive&, const unsigned int);

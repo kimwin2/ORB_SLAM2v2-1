@@ -846,7 +846,6 @@ void System::SaveMap(const string &filename)
 }
 bool System::LoadMap(const string &filename)
 {
-    cout << "4" << filename <<endl;
     std::ifstream in(filename, std::ios_base::binary);
     if (!in)
     {
@@ -1000,5 +999,48 @@ void System::RequestLoadMap(){
     mbRequestMapLoad = true;
 }
 
+void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
+    cout << "New map was received!" << endl;
+    stringstream sarray(msg->data);
+    Map *oldMap = mpMap;
+    Map *ClientMap = new Map();
+    {
+        unique_lock<mutex> lock(mMutexReset);
+        mpPointCloudMapping->Reset();//PCL
+         std::this_thread::sleep_for(std::chrono::microseconds(2000));
+    }
+    vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
+    vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
+    Reset();
+
+
+    mpLoopCloser->ReadyForMemoryConnect = true;
+    mpLocalMapper->ReadyForMemoryConnect = true;
+    while(!(mpLoopCloser->WaitForMemoryConnect&&mpLocalMapper->WaitForMemoryConnect)){
+        std::this_thread::sleep_for(std::chrono::microseconds(2000));
+    }
+
+    {
+        boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
+        ia >> ClientMap;
+    }
+
+    for(vector<KeyFrame*>::iterator itx = mpKFs.begin(); itx != mpKFs.end(); itx++){
+        mpMap->AddKeyFrame(*itx);
+        mpKeyFrameDatabase->add(*itx);
+    }
+    for(vector<MapPoint*>::iterator itx = mpMPs.begin(); itx != mpMPs.end(); itx++){
+        mpMap->AddMapPoint(*itx);
+    }/*
+    mpFrameDrawer->getMap(mpMap);
+    mpMapDrawer->getMap(mpMap);
+    mpTracker->getMap(mpMap);
+    mpLocalMapper->getMap(mpMap);
+    mpLoopCloser->getMap(mpMap);
+*/
+
+    mpLoopCloser->WaitForMemoryConnect = false;
+    mpLocalMapper->WaitForMemoryConnect = false;
+}
 
 } //namespace ORB_SLAM

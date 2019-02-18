@@ -4,6 +4,7 @@
 #include "ServerMap.h"
 #include "MapDrawer.h"
 #include "ORBParams.h"
+#include "ros/ros.h"
 #include <pangolin/pangolin.h>
 
 namespace ORB_SLAM2{
@@ -23,7 +24,9 @@ private:
     float mImageWidth, mImageHeight;
     float mViewpointX, mViewpointY, mViewpointZ, mViewpointF;
 
+    int clientId;
     string mapBinaryPath;
+    ros::Publisher map_pub;
 };
 
 }

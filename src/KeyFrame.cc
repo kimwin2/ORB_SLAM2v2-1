@@ -665,6 +665,22 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
     return vDepths[(vDepths.size()-1)/q];
 }
 
+// Create client map
+KeyFrame::KeyFrame(ServerKeyFrame* skf, Map* pMap):
+    mnId(skf->mnId), mnFrameId(skf->mnFrameId),  mTimeStamp(skf->mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
+    mfGridElementWidthInv(skf->mfGridElementWidthInv), mfGridElementHeightInv(skf->mfGridElementHeightInv),
+    mnTrackReferenceForFrame(skf->mnTrackReferenceForFrame), mnFuseTargetForKF(skf->mnFuseTargetForKF), mnBALocalForKF(skf->mnBALocalForKF), mnBAFixedForKF(skf->mnBAFixedForKF),
+    mnLoopQuery(skf->mnLoopQuery), mnLoopWords(skf->mnLoopWords), mnRelocQuery(skf->mnRelocQuery), mnRelocWords(skf->mnRelocWords), mnBAGlobalForKF(0),
+    fx(0.0), fy(0.0), cx(0.0), cy(0.0), invfx(0.0), invfy(0.0),
+    mbf(0.0), mb(0.0), mThDepth(0.0), N(skf->mvpMapPoints.size()), mnScaleLevels(0), mfScaleFactor(0),
+    mfLogScaleFactor(0.0),
+    mnMinX(0), mnMinY(0), mnMaxX(0),
+    mnMaxY(0), mDescriptors(skf->mDescriptors), mFeatVec(skf->mFeatVec), mpMap(pMap)
+{
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
+}
+    
+
 // Default serializing Constructor
 KeyFrame::KeyFrame():
     mnFrameId(0),  mTimeStamp(0.0), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
@@ -683,67 +699,100 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
     // no mutex needed vars
     ar & nNextId;
     ar & mnId;
+    cout << "5" << endl;
     ar & const_cast<long unsigned int &>(mnFrameId);
+    cout << "15" << endl;
     ar & const_cast<double &>(mTimeStamp);
+    cout << "25" << endl;
     // Grid related vars
     ar & const_cast<int &>(mnGridCols);
+    cout << "35" << endl;
     ar & const_cast<int &>(mnGridRows);
+    cout << "45" << endl;
     ar & const_cast<float &>(mfGridElementWidthInv);
+    cout << "55" << endl;
     ar & const_cast<float &>(mfGridElementHeightInv);
+    cout << "65" << endl;
     // Tracking related vars
     ar & mnTrackReferenceForFrame & mnFuseTargetForKF;
+    cout << "75" << endl;
     // LocalMaping related vars
     ar & mnBALocalForKF & mnBAFixedForKF;
+    cout << "85" << endl;
     // KeyFrameDB related vars
     ar & mnLoopQuery & mnLoopWords & mLoopScore & mnRelocQuery & mnRelocWords & mRelocScore;
+    cout << "95" << endl;
     // LoopClosing related vars
     ar & mTcwGBA & mTcwBefGBA & mnBAGlobalForKF;
+    cout << "85" << endl;
     // calibration parameters
     ar & const_cast<float &>(fx) & const_cast<float &>(fy) & const_cast<float &>(cx) & const_cast<float &>(cy);
+    cout << "75" << endl;
     ar & const_cast<float &>(invfx) & const_cast<float &>(invfy) & const_cast<float &>(mbf);
+    cout << "65" << endl;
     ar & const_cast<float &>(mb) & const_cast<float &>(mThDepth);
+    cout << "55" << endl;
     // Number of KeyPoints;
     ar & const_cast<int &>(N);
+    cout << "45" << endl;
     // KeyPoints, stereo coordinate and descriptors
     ar & const_cast<std::vector<cv::KeyPoint> &>(mvKeys);
+    cout << "35" << endl;
     ar & const_cast<std::vector<cv::KeyPoint> &>(mvKeysUn);
+    cout << "25" << endl;
     ar & const_cast<std::vector<float> &>(mvuRight);
+    cout << "15" << endl;
     ar & const_cast<std::vector<float> &>(mvDepth);
+    cout << "5" << endl;
     ar & const_cast<cv::Mat &>(mDescriptors);
+    cout << "15" << endl;
     // Bow
     ar & mBowVec & mFeatVec;
+    cout << "25" << endl;
     // Pose relative to parent
     ar & mTcp;
+    cout << "35" << endl;
     // Scale related
     ar & const_cast<int &>(mnScaleLevels) & const_cast<float &>(mfScaleFactor) & const_cast<float &>(mfLogScaleFactor);
+    cout << "45" << endl;
     ar & const_cast<std::vector<float> &>(mvScaleFactors) & const_cast<std::vector<float> &>(mvLevelSigma2) & const_cast<std::vector<float> &>(mvInvLevelSigma2);
+    cout << "55" << endl;
     // Image bounds and calibration
     ar & const_cast<int &>(mnMinX) & const_cast<int &>(mnMinY) & const_cast<int &>(mnMaxX) & const_cast<int &>(mnMaxY);
+    cout << "65" << endl;
     ar & const_cast<cv::Mat &>(mK);
+    cout << "75" << endl;
 
     // mutex needed vars, but don't lock mutex in the save/load procedure
     {
         unique_lock<mutex> lock_pose(mMutexPose);
         ar & Tcw & Twc & Ow & Cw;
     }
+    cout << "85" << endl;
     {
         unique_lock<mutex> lock_feature(mMutexFeatures);
         ar & mvpMapPoints; // hope boost deal with the pointer graph well
     }
+    cout << "95" << endl;
     // BoW
     ar & mpKeyFrameDB;
+    cout << "85" << endl;
     // mpORBvocabulary restore elsewhere(see SetORBvocab)
     {
         // Grid related
         unique_lock<mutex> lock_connection(mMutexConnections);
         ar & mGrid & mConnectedKeyFrameWeights & mvpOrderedConnectedKeyFrames & mvOrderedWeights;
+        cout << "851" << endl;
         // Spanning Tree and Loop Edges
         ar & mbFirstConnection & mpParent & mspChildrens & mspLoopEdges;
+        cout << "852" << endl;
         // Bad flags
         ar & mbNotErase & mbToBeErased & mbBad & mHalfBaseline;
     }
+    cout << "75" << endl;
     // Map Points
     ar & mpMap;
+    cout << "65" << endl;
     // don't save mutex
 }
 template void KeyFrame::serialize(boost::archive::binary_iarchive&, const unsigned int);

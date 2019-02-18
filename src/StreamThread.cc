@@ -70,6 +70,24 @@ void SendClassToServer::RunKeyFrame(){
 
     msg.Ow = {crt.at<float>(0),crt.at<float>(1),crt.at<float>(2)};
 
+    msg.nNextId = pKF->nNextId;
+    msg.mnFrameId = pKF->mnFrameId;
+    msg.mTimeStamp = pKF->mTimeStamp;
+    msg.mnGridCols = pKF->mnGridCols;
+    msg.mnGridRows = pKF->mnGridRows;
+    msg.mfGridElementWidthInv = pKF->mfGridElementWidthInv;
+    msg.mfGridElementHeightInv = pKF->mfGridElementHeightInv;
+    msg.mnTrackReferenceForFrame = pKF->mnTrackReferenceForFrame;
+    msg.mnFuseTargetForKF = pKF->mnFuseTargetForKF;
+    msg.mnBALocalForKF = pKF->mnBALocalForKF;
+    msg.mnBAFixedForKF = pKF->mnBAFixedForKF;
+    msg.mnLoopQuery = pKF->mnLoopQuery;
+    msg.mnLoopWords = pKF->mnLoopWords;
+    msg.mLoopScore = pKF->mLoopScore;
+    msg.mnRelocQuery = pKF->mnRelocQuery;
+    msg.mnRelocWords = pKF->mnRelocWords;
+    msg.mRelocScore = pKF->mRelocScore;
+
     vector<MapPoint*> mvpMP = pKF->GetMapPointMatches();
     msg.mvpMapPoints.resize(mvpMP.size());
     for(int i = 0; i < mvpMP.size(); i++){

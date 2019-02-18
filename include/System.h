@@ -38,6 +38,7 @@
 #include "pointcloudmapping.h"//PCL
 #include "ORBParams.h"
 #include "StreamThread.h"
+#include "std_msgs/String.h"
 
 #include "BoostArchiver.h"
 // for map file io
@@ -141,6 +142,8 @@ public:
     
     void RequestSaveMap();
     void RequestLoadMap();
+
+    void ReceiveMapCallback(const std_msgs::String::ConstPtr& msg);
 
     bool ServiceLoadMap(const string &filename);
     int ConnectMemory;

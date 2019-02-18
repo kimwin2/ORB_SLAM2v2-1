@@ -24,6 +24,7 @@
 #include"KeyFrame.h"
 #include"Frame.h"
 #include"Map.h"
+#include "ServerMap.h"
 
 #include<opencv2/core/core.hpp>
 #include<mutex>
@@ -87,6 +88,7 @@ public:
 public:
     // for serialization
     MapPoint();
+    MapPoint(ServerMapPoint* smp, Map *pMap);
 private:
     // serialize is recommended to be private
     friend class boost::serialization::access;

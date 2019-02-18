@@ -1,8 +1,8 @@
 #include <ros/ros.h>
-#include "std_msgs/String.h"
 #include "ServerMap.h"
 #include "ServerViewer.h"
 #include "ORBParams.h"
+#include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
@@ -34,13 +34,15 @@ public:
         cout << "Communicator Created" << endl;
     }
 
-    Communicator(char* str, ORBParams params){
+    Communicator(char* argv1, char* argv2, ORBParams params){
         sm = new ServerMap();
-        mpSMapDrawer = new MapDrawer(sm, str);
-        mServerViewer = new ServerViewer(sm, params, mpSMapDrawer, str);
+        voca_path = string(argv1);
+        mpSMapDrawer = new MapDrawer(sm, argv2);
+        mServerViewer = new ServerViewer(sm, params, mpSMapDrawer, argv2);
+        string cmp = "CLIENT_MAP" + to_string(params.getClientId());
+        client_map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmp,1000);
         new thread(&ServerViewer::Run,mServerViewer);
         cout << "Communicator Created" << endl;
-
     }
 
     void KeyFrameCallback(const ORB_SLAM2v2::KF::ConstPtr& msg){
@@ -53,7 +55,6 @@ public:
         cv::Mat Ow(3,1,CV_32F,ow);
         vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
         vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
-        cout << "Callback mnid : " << msg->mnId << endl;
         if(msg->command == INSERT)
             sm->AddKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
         else if(msg->command == ERASE)
@@ -69,13 +70,10 @@ public:
             sm->EraseMapPoint(msg->UID);
         else if(msg->command == UPDATE)
             sm->UpdateMapPoint(new ServerMapPoint(msg));
-        if(msg->command == INSERT)
-            cout << (int)msg->mDescriptor[0] << endl;
     }
 
     void KeyFrameData(const ORB_SLAM2v2::KF::ConstPtr& msg){
         stringstream sarray(msg->mDescriptors);
-        cout << "before serialization " << endl;
         cv::Mat desc;
         DBoW2::FeatureVector mFeatVec;
         vector<cv::KeyPoint> mvKeysUn;
@@ -85,8 +83,6 @@ public:
             ia >> mvKeysUn;
             ia >> mFeatVec;
         }
-        cout << "after serialization " << endl;
-        cout << "mnId : " << msg->mnId << endl;
         float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
         msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
         msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
@@ -104,23 +100,72 @@ public:
         }else if(msg->command == UPDATE){
             sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
         }
-        cout << "end KeyFrameData " << endl;
     }
 
     void MapPointData(const std_msgs::String::ConstPtr& msg){
 
     }
 
+    void SendMap(const std_msgs::String::ConstPtr& msg);
+
     ServerMap *sm;
     MapDrawer *mpSMapDrawer;
     string strSettingsFile;
+    string voca_path;
     ServerViewer *mServerViewer;
     ros::Subscriber kf_sub;
     ros::Subscriber mp_sub;
+    ros::Publisher client_map_pub;
 
     int mnId = 0;
 
 };
+
+void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
+    cout << "Creating new map" << endl;
+    Map *mpMap = new Map();
+    map<unsigned int, MapPoint*> mspMapPoints;
+    map<unsigned int, KeyFrame*> mspKeyFrames;
+    map<unsigned int, ServerMapPoint*> mspSMP = sm->GetAllMapPoints();
+    map<unsigned int, ServerKeyFrame*> mspSKF = sm->GetAllKeyFrames();
+    for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
+        KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
+        mspKeyFrames.insert({itx->first, pKF});
+        cout << pKF->mnId << endl;
+    }
+
+    for(map<unsigned int,ServerMapPoint*>::iterator itx = mspSMP.begin(); itx != mspSMP.end(); itx++){
+        MapPoint *pMP = new MapPoint(itx->second, mpMap);
+        map<unsigned int, unsigned int> mObs = itx->second->mObservations;
+        for(map<unsigned int, unsigned int>::iterator itor = mObs.begin(); itor != mObs.end(); itor++){
+            KeyFrame *pKF = mspKeyFrames[itor->first];
+            if(pKF){
+                pMP->AddObservation(pKF,itor->second);
+                pKF->AddMapPoint(pMP, itor->second);
+                mspMapPoints.insert({itx->first, pMP});
+            }
+        }
+    }
+
+    mpMap->AddKeyFrame(mspKeyFrames);
+    mpMap->AddMapPoint(mspMapPoints);
+
+    cout << "Strat to serialize" << endl;
+    
+    ostringstream sarray;
+    {
+        boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
+        oa << mpMap;
+    }
+    
+    cout << "Serialized!" << endl;
+
+    std_msgs::String map_msg;
+    map_msg.data = sarray.str();
+    client_map_pub.publish(map_msg);
+
+    cout << "Done!" << endl;
+}
 
 }
 
@@ -139,18 +184,23 @@ int main(int argc, char *argv[]){
     nh.param("mapBinaryPath", mapBinaryPath, mapBinaryPath);
 
     params.setMapBinaryPath(mapBinaryPath.c_str());
+    params.setNodeHandle(n);
+    params.setClientId(ClientId);
 
-    Communicator ccom(argv[2], params);
+    Communicator ccom(argv[1], argv[2], params);
 
     string kfName = "KEYFRAME" + to_string(ClientId);
     string mpName = "MAPPOINT" + to_string(ClientId);
     string kfDataName = "KEYFRAME_" + to_string(ClientId);
     string mpDataName = "MAPPOINT_" + to_string(ClientId);
+    string cmr = "CREATE_MAP_REQUEST" + to_string(ClientId);
 
     ros::Subscriber kf_sub = n.subscribe(kfName, 1000, &Communicator::KeyFrameCallback, &ccom);
     ros::Subscriber mp_sub = n.subscribe(mpName, 1000, &Communicator::MapPointCallback, &ccom);
     ros::Subscriber kf_data_sub = n.subscribe(kfDataName, 1000, &Communicator::KeyFrameData, &ccom);
     ros::Subscriber mp_data_sub = n.subscribe(mpDataName, 1000, &Communicator::MapPointData, &ccom);
+
+    ros::Subscriber create_map_request = n.subscribe(cmr, 1000, &Communicator::SendMap, &ccom);
 
     ros::spin();
 

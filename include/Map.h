@@ -50,6 +50,8 @@ public:
 
     void AddKeyFrame(KeyFrame* pKF);
     void AddMapPoint(MapPoint* pMP);
+    void AddKeyFrame(map<unsigned int, KeyFrame*> mspKFs);
+    void AddMapPoint(map<unsigned int, MapPoint*> mspMPs);
     void EraseMapPoint(MapPoint* pMP);
     void EraseKeyFrame(KeyFrame* pKF);
     void UpdateKeyFrame(KeyFrame* pKF);

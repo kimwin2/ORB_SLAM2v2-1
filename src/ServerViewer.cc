@@ -1,4 +1,5 @@
 #include "ServerViewer.h"
+#include "std_msgs/String.h"
 
 namespace ORB_SLAM2
 {
@@ -46,7 +47,10 @@ ServerViewer::ServerViewer(ServerMap *pSMap, ORBParams params, MapDrawer *pSMapD
     mViewpointZ = fSettings["Viewer.ViewpointZ"];
     mViewpointF = fSettings["Viewer.ViewpointF"];
 
+    clientId = params.getClientId();
     mapBinaryPath = params.getMapBinaryPath();
+    string cmr = "CREATE_MAP_REQUEST"+to_string(clientId);
+    map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmr,1000);
 }
 
 void ServerViewer::Run(){
@@ -67,6 +71,7 @@ void ServerViewer::Run(){
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
     pangolin::Var<bool> menuSave("menu.Save",false,false);
     pangolin::Var<bool> menuLoad("menu.Load",false,false);
+    pangolin::Var<bool> menuSend("menu.Send",false,false);
 
     // Define Camera Render Object (for view / scene browsing)
     pangolin::OpenGlRenderState s_cam(
@@ -122,6 +127,13 @@ void ServerViewer::Run(){
             delete old;
 
             menuLoad = false;
+        }
+
+        if(menuSend){
+            std_msgs::String msg;
+            msg.data = "Hello?" + clientId;
+            map_pub.publish(msg);
+            menuSend = false;
         }
     }
 }
