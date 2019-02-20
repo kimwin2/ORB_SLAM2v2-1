@@ -61,14 +61,14 @@ void PointCloudMapping::shutdown()
         shutDownFlag = true;
         keyFrameUpdated.notify_one();
     }
-    PointCloudMapping::saveOctomap();
+    //PointCloudMapping::saveOctomap();
     //viewerThread->join();
 }
 
 void PointCloudMapping::insertKeyFrame(KeyFrame* kf, cv::Mat& color, cv::Mat& depth)
 {
 
-    //cout<<"receive a keyframe, id = "<<kf->mnId<<endl;
+    cout<<"receive a keyframe, id = "<<kf->mnId<<endl;
     //cout<<kf->GetPose()<<endl;
 
     unique_lock<mutex> lck(keyframeMutex);
@@ -114,16 +114,32 @@ pcl::PointCloud< PointCloudMapping::PointT >::Ptr PointCloudMapping::generatePoi
 }
 
 
+void PointCloudMapping::SetOctomapFileName(string filename)
+{
+    int location = filename.find(".bin");
+    filename.erase(location,4);
+    filename.append(".bt");
+    octomap_filename = filename;
+    
+}
+
+
+
 void PointCloudMapping::saveOctomap()
 {
     pcl::PointCloud<pcl::PointXYZRGBA> loadedCloud;
     for(size_t i=0;i<keyframes.size();i++)// save the optimized pointcloud
     {
-        PointCloud::Ptr tp = generatePointCloud( keyframes[i], colorImgs[i], depthImgs[i] );
-        PointCloud::Ptr tmp(new PointCloud());
-        voxel.setInputCloud( tp );
-        voxel.filter( *tmp );
-        *globalMap += *tmp;
+        //cout<<"keyframe "<<i<<" ..."<<endl;
+        /*
+        if(keyframes[i]->deleted == false){
+            PointCloud::Ptr tp = generatePointCloud( keyframes[i], colorImgs[i], depthImgs[i] );
+            PointCloud::Ptr tmp(new PointCloud());
+            voxel.setInputCloud( tp );
+            voxel.filter( *tmp );
+            *globalMap += *tmp;
+        }
+        */
     }
     //PointCloud::Ptr tmp(new PointCloud());
     //sor.setInputCloud(globalMap);
@@ -168,11 +184,12 @@ void PointCloudMapping::saveOctomap()
     seg.setInputCloud(globalMap);
     seg.segment(*inliers, *coefficients);
 
+/*
     cout << "Model coefficients: " << coefficients->values[0] << " "
                                       << coefficients->values[1] << " "
                                       << coefficients->values[2] << " "
                                       << coefficients->values[3] << endl;
-
+*/
     Eigen::Matrix4f transform_trans = Eigen::Matrix4f::Identity();
     Eigen::Matrix4f transform_rot_x = Eigen::Matrix4f::Identity();
     Eigen::Matrix4f transform_rot_y = Eigen::Matrix4f::Identity();
@@ -186,11 +203,7 @@ void PointCloudMapping::saveOctomap()
 
 
 /*
-    transform(0,0) = 0		;transform(0,1) = -1		;transform(0,2) = 0;
-    transform(1,0) = 1		;transform(1,1) = 0		;transform(1,2) = 0;
-    transform(2,0) = 0		;transform(2,1) = 0		;transform(2,2) = 1;
-
-    transform2(0,0) = 1	;transform2(0,1) = 0		;transform2(0,2) = 0;
+    transform2(0,0) = 1	;transform2(0,1) = 0		    ;transform2(0,2) = 0;
     transform2(1,0) = 0	;transform2(1,1) = cos(ytoz)	;transform2(1,2) = -sin(ytoz);
     transform2(2,0) = 0	;transform2(2,1) = sin(ytoz)	;transform2(2,2) = cos(ytoz);
 */
@@ -201,11 +214,11 @@ void PointCloudMapping::saveOctomap()
 
     //confused about axis
 
-    //rotation x-axis matrix
+    //rotation z-axis matrix 90 degree
     
-    transform_rot_x(0,0) = 0	 ;transform_rot_x(0,1) = 1		;transform_rot_x(0,2) = 0;
-    transform_rot_x(1,0) = -1    ;transform_rot_x(1,1) = 0	    ;transform_rot_x(1,2) = 0;
-    transform_rot_x(2,0) = 0	 ;transform_rot_x(2,1) = 0    	;transform_rot_x(2,2) = 1;
+    transform_rot_z(0,0) = 0	 ;transform_rot_z(0,1) = 1		;transform_rot_z(0,2) = 0;
+    transform_rot_z(1,0) = -1    ;transform_rot_z(1,1) = 0	    ;transform_rot_z(1,2) = 0;
+    transform_rot_z(2,0) = 0	 ;transform_rot_z(2,1) = 0    	;transform_rot_z(2,2) = 1;
     
     // rotation x-axis    
     /*
@@ -215,8 +228,7 @@ void PointCloudMapping::saveOctomap()
     */
   
 
-
-    // rotation y-axis
+    // rotation y-axis 90 degree
     
     transform_rot_y(0,0) = 0	 ;transform_rot_y(0,1) = 0		;transform_rot_y(0,2) = -1;
     transform_rot_y(1,0) = 0     ;transform_rot_y(1,1) = 1	    ;transform_rot_y(1,2) = 0;
@@ -224,7 +236,7 @@ void PointCloudMapping::saveOctomap()
     
 
 
-    // rotation z-axis
+    // rotation x-axis 90 degree
     /*
     transform_rot_z(0,0) = 1	 ;transform_rot_z(0,1) = 0		;transform_rot_z(0,2) = 0;
     transform_rot_z(1,0) = 0     ;transform_rot_z(1,1) = 0	    ;transform_rot_z(1,2) = 1;
@@ -244,7 +256,7 @@ void PointCloudMapping::saveOctomap()
 
 
     // rotation * translation
-    pcl::transformPointCloud (*globalMap, *transformed_cloud, transform_trans*transform_rot_x*transform_rot_y);
+    pcl::transformPointCloud (*globalMap, *transformed_cloud, transform_trans*transform_rot_z*transform_rot_y);
 
 /*
     pcl::visualization::CloudViewer viewer("lhc_viewer");
@@ -275,7 +287,9 @@ void PointCloudMapping::saveOctomap()
     // update octomap
     tree.updateInnerOccupancy();
     // save octomap
-    tree.writeBinary(oct_name);
+    //tree.writeBinary(oct_name);
+    cout << "octomap save path : "<<octomap_filename <<endl;
+    tree.writeBinary(octomap_filename);
     cout<<"save octomap ... done."<<endl;
 
 }

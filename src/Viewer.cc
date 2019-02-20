@@ -49,6 +49,8 @@ Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer
     mViewpointY = fSettings["Viewer.ViewpointY"];
     mViewpointZ = fSettings["Viewer.ViewpointZ"];
     mViewpointF = fSettings["Viewer.ViewpointF"];
+
+    mbServiceMapLoad = false;
 }
 
 void Viewer::Run()
@@ -175,6 +177,28 @@ void Viewer::Run()
             menuLoad = false;
         }
 
+        // service map load
+        if(mbServiceMapLoad){
+            cout <<"service map load on viewer" << endl;
+            menuShowGraph = true;
+            menuShowKeyFrames = true;
+            menuShowPoints = true;
+            menuLocalizationMode = true;
+            if(!bLocalizationMode)
+                mpSystem->ActivateLocalizationMode();
+            bLocalizationMode = true;
+            bFollow = true;
+            menuFollowCamera = true;
+            char line[1024];
+            mpSystem->ServiceLoadMap(mstrfilename);
+            cout << "trying to request load map"<< endl;
+
+            menuLoad = false;
+            mbServiceMapLoad = false;
+            mstrfilename = "";
+        }
+
+
         if(Stop())
         {
             while(isStopped())
@@ -255,6 +279,12 @@ void Viewer::setLoadedMap(Tracking *pTracking){
     unique_lock<mutex> lock(mMutexStop);
     mpTracker = pTracking;
 
+}
+
+void Viewer::setServiceLoadedMap(string filename){
+    mbServiceMapLoad = true;
+    mstrfilename = filename;
+    cout << "mstrfilenmae : " << mstrfilename << endl;
 }
 
 }

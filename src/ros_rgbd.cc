@@ -63,6 +63,7 @@ int link_origin_id;
 int link_destination_id;  
 string sSaveFileName;
 string sLoadFileName;
+string strCurrentDr;
 
 bool GetPoseGraphSrv(ORB_SLAM2v2::MapGraph::Request &req, ORB_SLAM2v2::MapGraph::Response &response){
 
@@ -229,26 +230,25 @@ int main(int argc, char **argv)
     int ClientId = 0;
     string homeEnv;
 
-    char pwd[1024];
-    getcwd(pwd, 1024);
-    
-    
-    string strCurrentDr = string(pwd);
-    mapBinaryPath = strCurrentDr + mapBinaryPath;
-    mapOctomapPath = strCurrentDr + mapOctomapPath;
-    mapPCLPath = strCurrentDr + mapPCLPath;
-
+     
     nh.param("publish_tf", publish_tf, publish_tf);
     nh.param("publish_odom", publish_odom, publish_odom);
     nh.param("mapping", mapping, mapping);
     nh.param("build_octomap", build_octomap, build_octomap);
+
+
+    ORBParams params(publish_tf, publish_odom, mapping, build_octomap);
+
+    mapBinaryPath = strCurrentDr + mapBinaryPath;
+    mapOctomapPath = strCurrentDr + mapOctomapPath;
+    mapPCLPath = strCurrentDr + mapPCLPath;
     nh.param("mapBinaryPath", mapBinaryPath, mapBinaryPath);
     nh.param("mapOctomapPath", mapOctomapPath, mapOctomapPath);
     nh.param("mapPCLPath", mapPCLPath, mapPCLPath);
+    nh.param("mapWorkingPath", strCurrentDr, strCurrentDr);
     nh.param("ClientId", ClientId, ClientId);
     
-
-    ORBParams params(publish_tf, publish_odom, mapping, build_octomap);
+    params.setMapWorkingPath(strCurrentDr.c_str());
     params.setMapBinaryPath(mapBinaryPath.c_str());
     params.setMapOctomapPath(mapOctomapPath.c_str());
     params.setMapPCLPath(mapPCLPath.c_str());
@@ -308,8 +308,7 @@ void ImageGrabber::ServiceSaveMapCallback(){
     
     if(sSaveFileName.length() > 0){
         cout << "save file "<<endl;
-        
-        string strtmp = "/home/ritjt/catkin_ws/src/ORB_SLAM2v2";
+        string strtmp = strCurrentDr;
         strtmp = strtmp +sSaveFileName + ".bin";
         mpSLAM->SaveMap(strtmp);
         
@@ -322,11 +321,9 @@ void ImageGrabber::ServiceLoadMapCallback(){
     
     if(sLoadFileName.length() > 0){
         cout << "load file "<<endl;
-        
-         string strtmp = "/home/ritjt/catkin_ws/src/ORB_SLAM2v2";
-         strtmp = strtmp +sLoadFileName + ".bin";
-        mpSLAM->ServiceLoadMap(strtmp);
-        
+        string strtmp = strCurrentDr; 
+        strtmp = strtmp +sLoadFileName + ".bin";
+        mpSLAM->RequestServiceLoadMap(strtmp);
         sLoadFileName = "";
     }
 

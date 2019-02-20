@@ -142,6 +142,7 @@ public:
     
     void RequestSaveMap();
     void RequestLoadMap();
+    void RequestServiceLoadMap(string filename);
 
     void ReceiveMapCallback(const std_msgs::String::ConstPtr& msg);
 

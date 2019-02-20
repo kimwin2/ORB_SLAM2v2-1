@@ -806,8 +806,11 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 
 void System::SaveMap(const string &filename)
 {
-    /*
-    cout << "save binary map" << endl;
+     cout << "save binary map" << endl;
+
+    if(filename.length() > 0){
+        mapfile = filename;
+    }
     cout << "mapfile:" << mapfile << endl;
 
 
@@ -820,13 +823,13 @@ void System::SaveMap(const string &filename)
 
 
     mpLoopCloser->ReadyForMemoryConnect = true;
-    mpLocalMapper->ReadyForMemoryConnect = true;
-    while(!(mpLoopCloser->WaitForMemoryConnect&&mpLocalMapper->WaitForMemoryConnect)){
+    // mpLocalMapper->ReadyForMemoryConnect = true;
+    while(!(mpLoopCloser->WaitForMemoryConnect)){
         std::this_thread::sleep_for(std::chrono::microseconds(2000));
     }
 
     {
-        //unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+        unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
         cout << "Saving Mapfile: " << mapfile << std::flush;
         std::this_thread::sleep_for(std::chrono::microseconds(2000));
         boost::archive::binary_oarchive oa(out, boost::archive::no_header);
@@ -836,14 +839,23 @@ void System::SaveMap(const string &filename)
     cout << " ...done" << std::endl;
     out.close();
 
-    string cmd = "cp "+mapfile+" "+mapfile+".copy";
+    std:string cmd = "cp "+mapfile+" "+mapfile+".copy";
     int ld = system(cmd.c_str());
 
-    mpPointCloudMapping->saveOctomap();
+    /////////////////////////////
+    // build octomap 
+    // ROS Param : build_octomap
+    // type : bool 
+    /////////////////////////////
+    bool bBuildOctomap = mParams.getBuildOctomap();
+
+    if(bBuildOctomap){
+        mpPointCloudMapping->SetOctomapFileName(mapfile);
+        mpPointCloudMapping->saveOctomap();
+    }
         
     mpLoopCloser->WaitForMemoryConnect = false;
-    mpLocalMapper->WaitForMemoryConnect = false;
-*/
+    //mpLocalMapper->WaitForMemoryConnect = false;
 
 }
 bool System::LoadMap(const string &filename)
@@ -936,14 +948,15 @@ bool System::LoadMap(){
 }
 bool System::ServiceLoadMap(const string &filename)
 {
-    std::ifstream in(filename, std::ios_base::binary);
-    Map* oldMap = mpMap;
+     Map* oldMap = mpMap;
+    cout << "file name in serviceloadmap : " << filename << endl;
     {
         unique_lock<mutex> lock(mMutexReset);
         mpPointCloudMapping->Reset();//PCL
          std::this_thread::sleep_for(std::chrono::microseconds(2000));
     }
-    mpMap->clear();
+    std::ifstream in(filename, std::ios_base::binary);
+    //mpMap->clear();
 
     if (!in)
     {
@@ -953,9 +966,11 @@ bool System::ServiceLoadMap(const string &filename)
 
     cout << "Loading Mapfile" << std::flush;
     mpLoopCloser->ReadyForMemoryConnect = true;
-    mpLocalMapper->ReadyForMemoryConnect = true;
-    while(!(mpLoopCloser->WaitForMemoryConnect&&mpLocalMapper->WaitForMemoryConnect)){
-        std::this_thread::sleep_for(std::chrono::microseconds(2000));
+    mpLocalMapper->RequestStop();
+    //mpLocalMapper->ReadyForMemoryConnect = true;
+    while(!(mpLoopCloser->WaitForMemoryConnect && mpLocalMapper->isStopped())){
+        cout << "Please wait for a while"<< endl;
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
     }
 
     boost::archive::binary_iarchive ia(in, boost::archive::no_header);
@@ -973,6 +988,7 @@ bool System::ServiceLoadMap(const string &filename)
         if (it->mnFrameId > mnFrameId)
             mnFrameId = it->mnFrameId;
     }
+
     Frame::nNextId = mnFrameId;
 
     cout << " ...done" << endl;
@@ -988,8 +1004,9 @@ bool System::ServiceLoadMap(const string &filename)
     delete oldMap;
 
     mpLoopCloser->WaitForMemoryConnect = false;
-    mpLocalMapper->WaitForMemoryConnect = false;
-    
+    //mpLocalMapper->WaitForMemoryConnect = false;
+    mpLocalMapper->Release();
+    ConnectMemory = 0;
     return true;
 }
 
@@ -999,6 +1016,13 @@ void System::RequestSaveMap(){
 void System::RequestLoadMap(){
     mbRequestMapLoad = true;
 }
+
+
+void System::RequestServiceLoadMap(string filename){
+
+   mpViewer->setServiceLoadedMap(filename);
+}
+
 
 void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     cout << "New map was received!" << endl;

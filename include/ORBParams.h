@@ -20,6 +20,7 @@ public:
     void setBuildOctomap(bool b);
     void setMapBinaryPath(const char* m);
     void setMapOctomapPath(const char* m);
+    void setMapWorkingPath(const char* m);
     void setMapPCLPath(const char* m);
     void setClientId(int id);
     void setNodeHandle(ros::NodeHandle nh);
@@ -30,6 +31,7 @@ public:
     bool getBuildOctomap();
     const char* getMapBinaryPath();
     const char* getMapOctomapPath();
+    const char* getMapWorkingPath();
     const char* getMapPCLPath();
     int getClientId();
     ros::NodeHandle getNodeHandle();
@@ -41,6 +43,7 @@ private:
     bool build_octomap;
     const char* mapBinaryPath;
     const char* mapOctomapPath;
+    const char* mapWorkingPath;
     const char* mapPCLPath;
     int ClientId;
     ros::NodeHandle n;

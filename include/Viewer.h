@@ -60,6 +60,8 @@ public:
 
     void setLoadedMap(Tracking *pTracking);
 
+    void setServiceLoadedMap(string filename);
+
 private:
 
     bool Stop();
@@ -86,6 +88,10 @@ private:
     bool mbReuseMap;
 
     std::mutex mMutexStop;
+   
+    string mstrfilename;
+    bool mbServiceMapLoad;
+
 
 };
 
