@@ -51,6 +51,7 @@ public:
     void saveOctomap();
     void saveOctomapThread();
     void Reset();
+    void SetOctomapFileName(string filename);
     
 protected:
     PointCloud::Ptr generatePointCloud(KeyFrame* kf, cv::Mat& color, cv::Mat& depth);
@@ -77,6 +78,8 @@ protected:
 
     string pcl_name;
     string oct_name;
+
+    string octomap_filename;
 };
 
 #endif // POINTCLOUDMAPPING_H

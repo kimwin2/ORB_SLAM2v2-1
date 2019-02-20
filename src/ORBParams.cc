@@ -45,6 +45,10 @@ void ORBParams::setMapOctomapPath(const char* m){
     mapOctomapPath = m;
 
 }
+void ORBParams::setMapWorkingPath(const char* m){
+    mapWorkingPath = m;
+
+}
 bool ORBParams::getPublishTf(){
     return publish_tf;
 }
@@ -74,6 +78,9 @@ const char* ORBParams::getMapOctomapPath(){
 
 const char* ORBParams::getMapPCLPath(){
     return mapPCLPath;
+}
+const char* ORBParams::getMapWorkingPath(){
+    return mapWorkingPath;
 }
 
 int ORBParams::getClientId(){
