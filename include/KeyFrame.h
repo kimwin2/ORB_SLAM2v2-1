@@ -123,6 +123,7 @@ public:
     KeyFrame(); // Default constructor for serialization, need to deal with const member
     KeyFrame(ServerKeyFrame* skf, Map *pMap); // Create map to send a map to server
     void SetORBvocabulary(ORBVocabulary *porbv) {mpORBvocabulary=porbv;}
+    void SetMap(Map *pMap){mpMap = pMap;}
 private:
     // serialize is recommended to be private
     friend class boost::serialization::access;

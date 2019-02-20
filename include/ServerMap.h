@@ -86,6 +86,8 @@ public:
     DBoW2::FeatureVector mFeatVec;
     vector<cv::KeyPoint> mvKeysUn;
     vector<long unsigned int> mvpMapPoints;
+    vector<float> mvuRight;
+    vector<float> mvDepth;
 
     long unsigned int nNextId;
     long unsigned int mnFrameId;

@@ -73,16 +73,6 @@ public:
     }
 
     void KeyFrameData(const ORB_SLAM2v2::KF::ConstPtr& msg){
-        stringstream sarray(msg->mDescriptors);
-        cv::Mat desc;
-        DBoW2::FeatureVector mFeatVec;
-        vector<cv::KeyPoint> mvKeysUn;
-        {
-            boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
-            ia >> desc;
-            ia >> mvKeysUn;
-            ia >> mFeatVec;
-        }
         float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
         msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
         msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
@@ -102,8 +92,13 @@ public:
         }
     }
 
-    void MapPointData(const std_msgs::String::ConstPtr& msg){
-
+    void MapPointData(const ORB_SLAM2v2::MP::ConstPtr& msg){
+        if(msg->command == INSERT)
+            sm->AddMapPoint(new ServerMapPoint(msg));
+        else if(msg->command == ERASE)
+            sm->EraseMapPoint(msg->UID);
+        else if(msg->command == UPDATE)
+            sm->UpdateMapPoint(new ServerMapPoint(msg));
     }
 
     void SendMap(const std_msgs::String::ConstPtr& msg);
@@ -131,19 +126,31 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
     for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
         KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
         mspKeyFrames.insert({itx->first, pKF});
-        cout << pKF->mnId << endl;
     }
-
     for(map<unsigned int,ServerMapPoint*>::iterator itx = mspSMP.begin(); itx != mspSMP.end(); itx++){
         MapPoint *pMP = new MapPoint(itx->second, mpMap);
         map<unsigned int, unsigned int> mObs = itx->second->mObservations;
         for(map<unsigned int, unsigned int>::iterator itor = mObs.begin(); itor != mObs.end(); itor++){
             KeyFrame *pKF = mspKeyFrames[itor->first];
             if(pKF){
+                cout << "pKF : " << pKF->mnId << " itor->second : " << itor->second <<endl;
+                cout << "1" << endl;
                 pMP->AddObservation(pKF,itor->second);
+                cout << "2" << endl;
                 pKF->AddMapPoint(pMP, itor->second);
+                cout << "3" << endl;
                 mspMapPoints.insert({itx->first, pMP});
+                cout << "4" << endl;
             }
+        }
+    }
+    cout << "mspMapPoints.insert" << endl;
+    for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
+        KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
+        if(itx->second->parentId != -1){
+            KeyFrame *parentKF = mspKeyFrames[itx->first];
+            if(parentKF)
+                pKF->ChangeParent(parentKF);
         }
     }
 

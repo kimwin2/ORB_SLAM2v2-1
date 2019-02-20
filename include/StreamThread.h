@@ -23,13 +23,22 @@ public:
     void SetPublisher(ros::Publisher _data_pub);
     void SetKeyFrame(KeyFrame *_pKF);
     void SetMapPoint(MapPoint *_pMP);
-    void RunKeyFrame();
-    void RunMapPoint();
+    void EraseKeyFrame(KeyFrame *_pKF);
+    void EraseMapPoint(MapPoint *_pMP);
+    void UpdateKeyFrame(KeyFrame *_pKF);
+    void UpdateMapPoint(MapPoint *_pMP);
+    void RunKeyFrame(int command);
+    void RunMapPoint(int command);
+    void RunMapPoint(MapPoint* _pMP, int command);
     void Run();
     int GetClientId();
 
     queue<KeyFrame*> mvpKF;
     queue<MapPoint*> mvpMP;
+    queue<KeyFrame*> mvpUKF;
+    queue<MapPoint*> mvpUMP;
+    queue<KeyFrame*> mvpDKF;
+    queue<MapPoint*> mvpDMP;
 
     void RequestFinish();
     bool isFinished();

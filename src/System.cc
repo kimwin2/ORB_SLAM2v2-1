@@ -806,6 +806,7 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 
 void System::SaveMap(const string &filename)
 {
+    /*
     cout << "save binary map" << endl;
     cout << "mapfile:" << mapfile << endl;
 
@@ -835,13 +836,14 @@ void System::SaveMap(const string &filename)
     cout << " ...done" << std::endl;
     out.close();
 
-    std:string cmd = "cp "+mapfile+" "+mapfile+".copy";
+    string cmd = "cp "+mapfile+" "+mapfile+".copy";
     int ld = system(cmd.c_str());
 
     mpPointCloudMapping->saveOctomap();
         
     mpLoopCloser->WaitForMemoryConnect = false;
     mpLocalMapper->WaitForMemoryConnect = false;
+*/
 
 }
 bool System::LoadMap(const string &filename)
@@ -922,7 +924,7 @@ bool System::LoadMap(){
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
-    
+    mpMap->SetSendClassToServer(mpSendClassToServer);
 
     delete oldMap;
 
@@ -981,13 +983,12 @@ bool System::ServiceLoadMap(const string &filename)
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
-    
+    mpMap->SetSendClassToServer(mpSendClassToServer);    
 
     delete oldMap;
 
     mpLoopCloser->WaitForMemoryConnect = false;
     mpLocalMapper->WaitForMemoryConnect = false;
-    ConnectMemory = 0;
     
     return true;
 }
@@ -1001,9 +1002,9 @@ void System::RequestLoadMap(){
 
 void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     cout << "New map was received!" << endl;
+    ActivateLocalizationMode();
     stringstream sarray(msg->data);
     Map *oldMap = mpMap;
-    Map *ClientMap = new Map();
     {
         unique_lock<mutex> lock(mMutexReset);
         mpPointCloudMapping->Reset();//PCL
@@ -1011,36 +1012,64 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     }
     vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
     vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
-    Reset();
+    KeyFrame* KFini = *(mpMap->mvpKeyFrameOrigins.begin());
 
+    mpViewer->RequestStop();
+    while(!mpViewer->isStopped())
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(3000));
+    }
 
     mpLoopCloser->ReadyForMemoryConnect = true;
     mpLocalMapper->ReadyForMemoryConnect = true;
     while(!(mpLoopCloser->WaitForMemoryConnect&&mpLocalMapper->WaitForMemoryConnect)){
         std::this_thread::sleep_for(std::chrono::microseconds(2000));
     }
-
+    
+    //mpMap = new Map();
+    /*
     {
         boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
-        ia >> ClientMap;
-    }
+        ia >> mpMap;
+    }*/
+    mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
+    unsigned long mnFrameId = 0;
 
     for(vector<KeyFrame*>::iterator itx = mpKFs.begin(); itx != mpKFs.end(); itx++){
         mpMap->AddKeyFrame(*itx);
+        cout << "1" << endl;
+        (*itx)->SetMap(mpMap);
+        cout << "2" << endl;
+        (*itx)->SetORBvocabulary(mpVocabulary);
+        cout << "3" << endl;
+        (*itx)->ComputeBoW();
+        cout << "4" << endl;
         mpKeyFrameDatabase->add(*itx);
+        cout << "6" << endl;
+        if( (*itx)->mnFrameId > mnFrameId)
+            mnFrameId = (*itx)->mnFrameId;
+        cout << "7" << endl;
     }
     for(vector<MapPoint*>::iterator itx = mpMPs.begin(); itx != mpMPs.end(); itx++){
         mpMap->AddMapPoint(*itx);
-    }/*
+    }
+
+    Frame::nNextId = mnFrameId;
+    mpMap->mvpKeyFrameOrigins.push_back(KFini);
+    
     mpFrameDrawer->getMap(mpMap);
     mpMapDrawer->getMap(mpMap);
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
-*/
+    mpMap->SetSendClassToServer(mpSendClassToServer);
 
+    //delete oldMap;
+
+    cout << "Done!" << endl;
     mpLoopCloser->WaitForMemoryConnect = false;
     mpLocalMapper->WaitForMemoryConnect = false;
+    mpViewer->Release();
 }
 
 } //namespace ORB_SLAM

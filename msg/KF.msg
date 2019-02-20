@@ -30,6 +30,9 @@ uint64 mnRelocQuery
 int32 mnRelocWords
 float32 mRelocScore
 
+float32[] mvuRight
+float32[] mvDepth
+
 string mDescriptors
 
 uint64[] mvpMapPoints

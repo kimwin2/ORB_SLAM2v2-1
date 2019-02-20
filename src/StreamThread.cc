@@ -13,7 +13,7 @@ SendClassToServer::SendClassToServer(ros::NodeHandle _nh, int cid, Map *pMap):n(
     string kfDataName = "KEYFRAME_" + to_string(cid);
     string mpDataName = "MAPPOINT_" + to_string(cid);
     kf_data_pub = n.advertise<ORB_SLAM2v2::KF>(kfDataName, 1000);
-    mp_data_pub = n.advertise<std_msgs::String>(mpDataName, 1000);
+    mp_data_pub = n.advertise<ORB_SLAM2v2::MP>(mpDataName, 1000);
     cout << kfDataName << endl;
     ClientId = cid;
 }
@@ -27,11 +27,27 @@ void SendClassToServer::SetKeyFrame(KeyFrame *_pKF){
 }
 
 void SendClassToServer::SetMapPoint(MapPoint *_pMP){
-    pMP = _pMP;
+    mvpMP.push(_pMP);
+}
+
+void SendClassToServer::EraseKeyFrame(KeyFrame *_pKF){
+    mvpDKF.push(_pKF);
+}
+
+void SendClassToServer::EraseMapPoint(MapPoint *_pMP){
+    mvpDMP.push(_pMP);
+}
+
+void SendClassToServer::UpdateKeyFrame(KeyFrame *_pKF){
+    mvpUKF.push(_pKF);
+}
+
+void SendClassToServer::UpdateMapPoint(MapPoint *_pMP){
+    mvpUMP.push(_pMP);
 }
 
 
-void SendClassToServer::RunKeyFrame(){
+void SendClassToServer::RunKeyFrame(int command){
     ORB_SLAM2v2::KF msg;
 
     vector<long unsigned int> cl;
@@ -57,7 +73,7 @@ void SendClassToServer::RunKeyFrame(){
         }
     }
 
-    msg.command = 0;
+    msg.command = command;
     msg.mClientId = GetClientId();
     msg.mnId = pKF->mnId;
     msg.Parent = pF;
@@ -87,7 +103,7 @@ void SendClassToServer::RunKeyFrame(){
     msg.mnRelocQuery = pKF->mnRelocQuery;
     msg.mnRelocWords = pKF->mnRelocWords;
     msg.mRelocScore = pKF->mRelocScore;
-
+/*
     vector<MapPoint*> mvpMP = pKF->GetMapPointMatches();
     msg.mvpMapPoints.resize(mvpMP.size());
     for(int i = 0; i < mvpMP.size(); i++){
@@ -97,18 +113,83 @@ void SendClassToServer::RunKeyFrame(){
             msg.mvpMapPoints[i] = mvpMP[i]->UID;
         }        
     }
+*/
+    if(command == 0){
+        for(int i = 0 ; i < pKF->mvuRight.size(); i++){
+            msg.mvuRight.push_back(pKF->mvuRight[i]);
+        }
+        for(int i = 0; i < pKF->mvDepth.size(); i++){
+            msg.mvDepth.push_back(pKF->mvDepth[i]);
+        }
 
-    ostringstream sarray;
-    KeyFrame &kf = *pKF;
-    cv::Mat desc = kf.mDescriptorsCopy;
-    {
-        boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
-        oa << desc;
-        oa << kf.mvKeysUn;
-        oa << kf.mFeatVec;
+        ostringstream sarray;
+        KeyFrame &kf = *pKF;
+        cv::Mat desc = kf.mDescriptorsCopy;
+        {
+            boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
+            oa << desc;
+            oa << kf.mvKeysUn;
+            oa << kf.mFeatVec;
+        }
+        msg.mDescriptors = sarray.str();
     }
-    msg.mDescriptors = sarray.str();
     kf_data_pub.publish(msg);
+}
+
+void SendClassToServer::RunMapPoint(int command){
+    ORB_SLAM2v2::MP msg;
+    cv::Mat cvt = pMP->GetWorldPos();
+
+    msg.command = command;
+    msg.UID = pMP->UID;
+    msg.mnId = pMP->mnId;
+    msg.mWorldPos = {cvt.at<float>(0),cvt.at<float>(1),cvt.at<float>(2)};
+
+    map<KeyFrame*,size_t> mOb = pMP->GetObservations();
+    for(map<KeyFrame*,size_t>::iterator itx = mOb.begin(); itx != mOb.end(); itx++){
+        ORB_SLAM2v2::Observation ob;
+        ob.keyframe = (*itx).first->mnId;
+        ob.idx = (*itx).second;
+        msg.mObservations.push_back(ob);
+    }
+    cv::Mat mDescriptor = pMP->GetDescriptor();
+    for(int i=0; i<32; i++){
+        msg.mDescriptor[i] = mDescriptor.at<unsigned char>(i);
+    }
+
+    msg.nNextId = pMP->nNextId;
+    msg.mnFirstKFid = pMP->mnFirstKFid;
+    msg.mnFirstFrame = pMP->mnFirstFrame;
+    msg.nObs = pMP->nObs;
+    mp_data_pub.publish(msg);
+}
+
+void SendClassToServer::RunMapPoint(MapPoint* _pMP, int command){
+    ORB_SLAM2v2::MP msg;
+    cv::Mat cvt = _pMP->GetWorldPos();
+
+    msg.command = command;
+    msg.UID = _pMP->UID;
+    msg.mnId = _pMP->mnId;
+    msg.mWorldPos = {cvt.at<float>(0),cvt.at<float>(1),cvt.at<float>(2)};
+
+    map<KeyFrame*,size_t> mOb = _pMP->GetObservations();
+    for(map<KeyFrame*,size_t>::iterator itx = mOb.begin(); itx != mOb.end(); itx++){
+        ORB_SLAM2v2::Observation ob;
+        ob.keyframe = (*itx).first->mnId;
+        ob.idx = (*itx).second;
+        msg.mObservations.push_back(ob);
+    }
+    cv::Mat mDescriptor = _pMP->GetDescriptor();
+    for(int i=0; i<32; i++){
+        msg.mDescriptor[i] = mDescriptor.at<unsigned char>(i);
+    }
+
+    msg.nNextId = _pMP->nNextId;
+    msg.mnFirstKFid = _pMP->mnFirstKFid;
+    msg.mnFirstFrame = _pMP->mnFirstFrame;
+    msg.nObs = _pMP->nObs;
+    mp_data_pub.publish(msg);
 }
 
 void SendClassToServer::Run(){
@@ -118,12 +199,38 @@ void SendClassToServer::Run(){
     while(1){
         if(!mvpKF.empty()){
             pKF = mvpKF.front();
-            RunKeyFrame();
+            RunKeyFrame(0);
             mvpKF.pop();
         }
 
         if(!mvpMP.empty()){
-            
+            pMP = mvpMP.front();
+            RunMapPoint(0);
+            mvpMP.pop();
+        }
+
+        if(!mvpUKF.empty()){
+            pKF = mvpUKF.front();
+            RunKeyFrame(2);
+            mvpUKF.pop();
+        }
+
+        if(!mvpUMP.empty()){
+            pMP = mvpUMP.front();
+            RunMapPoint(2);
+            mvpUMP.pop();
+        }
+
+        if(!mvpDKF.empty()){
+            pKF = mvpDKF.front();
+            RunKeyFrame(1);
+            mvpDKF.pop();
+        }
+
+        if(!mvpDMP.empty()){
+            pMP = mvpDMP.front();
+            RunMapPoint(1);
+            mvpDMP.pop();
         }
 
         if(CheckFinish())

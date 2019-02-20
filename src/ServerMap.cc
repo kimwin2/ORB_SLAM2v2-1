@@ -56,7 +56,7 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     cv::Mat mOw(3,1,CV_32F,ow);
     vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
     vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
-    vector<long unsigned int> mvpMP(begin(msg->mvpMapPoints), end(msg->mvpMapPoints));
+    //vector<long unsigned int> mvpMP(begin(msg->mvpMapPoints), end(msg->mvpMapPoints));
 
     mnId = msg->mnId;
     Twc = mTwc.clone();
@@ -64,7 +64,7 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     parentId = msg->Parent;
     CovisibleList.swap(cl);
     LoopEdgeList.swap(lel);
-    mvpMapPoints.swap(mvpMP);
+    //mvpMapPoints.swap(mvpMP);
 
     nNextId = msg->nNextId;
     mnFrameId = msg->mnFrameId;
@@ -81,6 +81,11 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     mLoopScore = msg->mLoopScore;
     mnRelocQuery = msg->mnRelocQuery;
     mRelocScore = msg->mRelocScore;
+
+    vector<float> mRight(begin(msg->mvuRight), end(msg->mvuRight));
+    vector<float> mDepth(begin(msg->mvDepth), end(msg->mvDepth));
+    mvuRight.swap(mRight);
+    mvDepth.swap(mDepth);
 }
 
 ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
@@ -94,7 +99,7 @@ ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vecto
     mDescriptors = desc.clone();
     mFeatVec.swap(mF);
     mvKeysUn.swap(mvK);
-    mvpMapPoints.swap(mvpMP);
+    //mvpMapPoints.swap(mvpMP);
 }
 
 ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist){
@@ -129,17 +134,17 @@ vector<long unsigned int> ServerKeyFrame::GetCovisibleList(){
 vector<long unsigned int> ServerKeyFrame::GetLoopEdgeList(){
     return LoopEdgeList;
 }
-
+/*
 vector<long unsigned int> ServerKeyFrame::GetMapPoints(){
     return mvpMapPoints;
 }
-
+*/
 void ServerKeyFrame::Swap(ServerKeyFrame *skf){
     Twc = skf->Twc.clone();
     Ow = skf->Ow.clone();
     CovisibleList = skf->GetCovisibleList();
     LoopEdgeList = skf->GetLoopEdgeList();
-    mvpMapPoints = skf->GetMapPoints();
+    //mvpMapPoints = skf->GetMapPoints();
 }
 
 void ServerMap::AddMapPoint(ServerMapPoint *smp){
