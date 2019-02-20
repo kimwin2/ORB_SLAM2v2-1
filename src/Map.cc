@@ -29,6 +29,7 @@ namespace ORB_SLAM2
 
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
+    mpSendClassToServer = static_cast<SendClassToServer*>(NULL);
 }
 
 void Map::AddKeyFrame(KeyFrame *pKF)
@@ -37,7 +38,8 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     mspKeyFrames.insert(pKF);
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
-    mpSendClassToServer->SetKeyFrame(pKF);
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->SetKeyFrame(pKF);
 
 }
 
@@ -45,7 +47,8 @@ void Map::AddMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.insert(pMP);
-    mpSendClassToServer->RunMapPoint(pMP, 0);
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->RunMapPoint(pMP, 0);
 }
 
 void Map::AddKeyFrame(map<unsigned int, KeyFrame*> mspKFs){
@@ -66,7 +69,8 @@ void Map::EraseMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.erase(pMP);
-    mpSendClassToServer->RunMapPoint(pMP,1);\
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->RunMapPoint(pMP,1);
     // TODO: This only erase the pointer.
     // Delete the MapPoint
 }
@@ -75,19 +79,22 @@ void Map::EraseKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspKeyFrames.erase(pKF);
-    mpSendClassToServer->EraseKeyFrame(pKF);
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->EraseKeyFrame(pKF);
     // TODO: This only erase the pointer.
     // Delete the MapPoint
 }
 
 void Map::UpdateKeyFrame(KeyFrame *pKF){
     unique_lock<mutex> lock(mMutexMap);
-    mpSendClassToServer->UpdateKeyFrame(pKF);
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->UpdateKeyFrame(pKF);
 }
 
 void Map::UpdateMapPoint(MapPoint *pMP){
     unique_lock<mutex> lock(mMutexMap);
-    mpSendClassToServer->RunMapPoint(pMP,2);\
+    if(mpSendClassToServer != NULL)
+        mpSendClassToServer->RunMapPoint(pMP,2);
 }
 
 void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)

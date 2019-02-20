@@ -128,6 +128,7 @@ public:
     void EraseKeyFrame(long unsigned int mnId);
     void UpdateMapPoint(ServerMapPoint *smp);
     void UpdateKeyFrame(ServerKeyFrame *skf);
+    unsigned int GetKeyFrameOrigin();
     void Clear();
 
     map<unsigned int, ServerMapPoint*> GetAllMapPoints();

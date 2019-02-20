@@ -1005,14 +1005,12 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     ActivateLocalizationMode();
     stringstream sarray(msg->data);
     Map *oldMap = mpMap;
+    KeyFrameDatabase *oldDB = mpKeyFrameDatabase;
     {
         unique_lock<mutex> lock(mMutexReset);
         mpPointCloudMapping->Reset();//PCL
          std::this_thread::sleep_for(std::chrono::microseconds(2000));
     }
-    vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
-    vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
-    KeyFrame* KFini = *(mpMap->mvpKeyFrameOrigins.begin());
 
     mpViewer->RequestStop();
     while(!mpViewer->isStopped())
@@ -1026,36 +1024,30 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
         std::this_thread::sleep_for(std::chrono::microseconds(2000));
     }
     
-    //mpMap = new Map();
-    /*
+    mpMap = new Map();
+    
     {
         boost::archive::binary_iarchive ia(sarray, boost::archive::no_header);
         ia >> mpMap;
-    }*/
-    mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
-    unsigned long mnFrameId = 0;
+    }
 
+    cout << "Serialize finished" << endl;
+
+    vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
+    vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
+    KeyFrame* KFini = *(mpMap->mvpKeyFrameOrigins.begin());
+
+    mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
+    unsigned long mnFrameId = 0;
     for(vector<KeyFrame*>::iterator itx = mpKFs.begin(); itx != mpKFs.end(); itx++){
-        mpMap->AddKeyFrame(*itx);
-        cout << "1" << endl;
-        (*itx)->SetMap(mpMap);
-        cout << "2" << endl;
         (*itx)->SetORBvocabulary(mpVocabulary);
-        cout << "3" << endl;
         (*itx)->ComputeBoW();
-        cout << "4" << endl;
         mpKeyFrameDatabase->add(*itx);
-        cout << "6" << endl;
         if( (*itx)->mnFrameId > mnFrameId)
             mnFrameId = (*itx)->mnFrameId;
-        cout << "7" << endl;
-    }
-    for(vector<MapPoint*>::iterator itx = mpMPs.begin(); itx != mpMPs.end(); itx++){
-        mpMap->AddMapPoint(*itx);
     }
 
     Frame::nNextId = mnFrameId;
-    mpMap->mvpKeyFrameOrigins.push_back(KFini);
     
     mpFrameDrawer->getMap(mpMap);
     mpMapDrawer->getMap(mpMap);
@@ -1064,11 +1056,12 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     mpLoopCloser->getMap(mpMap);
     mpMap->SetSendClassToServer(mpSendClassToServer);
 
-    //delete oldMap;
+    delete oldMap;
+    delete oldDB;
 
     cout << "Done!" << endl;
-    mpLoopCloser->WaitForMemoryConnect = false;
-    mpLocalMapper->WaitForMemoryConnect = false;
+    //mpLoopCloser->WaitForMemoryConnect = false;
+    //mpLocalMapper->WaitForMemoryConnect = false;
     mpViewer->Release();
 }
 

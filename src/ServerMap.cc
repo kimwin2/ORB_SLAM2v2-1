@@ -192,6 +192,10 @@ map<unsigned int, ServerKeyFrame*> ServerMap::GetAllKeyFrames(){
     return mspServerKeyFrames;
 }
 
+unsigned int ServerMap::GetKeyFrameOrigin(){
+    return KeyFrameOrigin;
+}
+
 void ServerMap::Clear(){
     unique_lock<mutex> lock(mMutexMap);
     mspServerKeyFrames.clear();

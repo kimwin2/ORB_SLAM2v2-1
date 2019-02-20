@@ -133,14 +133,9 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
         for(map<unsigned int, unsigned int>::iterator itor = mObs.begin(); itor != mObs.end(); itor++){
             KeyFrame *pKF = mspKeyFrames[itor->first];
             if(pKF){
-                cout << "pKF : " << pKF->mnId << " itor->second : " << itor->second <<endl;
-                cout << "1" << endl;
                 pMP->AddObservation(pKF,itor->second);
-                cout << "2" << endl;
                 pKF->AddMapPoint(pMP, itor->second);
-                cout << "3" << endl;
                 mspMapPoints.insert({itx->first, pMP});
-                cout << "4" << endl;
             }
         }
     }
@@ -156,6 +151,7 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
 
     mpMap->AddKeyFrame(mspKeyFrames);
     mpMap->AddMapPoint(mspMapPoints);
+    mpMap->mvpKeyFrameOrigins.push_back(mspKeyFrames[sm->GetKeyFrameOrigin()]);
 
     cout << "Strat to serialize" << endl;
     

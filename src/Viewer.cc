@@ -160,7 +160,7 @@ void Viewer::Run()
             mpSystem->RequestSaveMap();
             menuSave = false;
         }
-      if(menuLoad){
+        if(menuLoad){
             menuShowGraph = true;
             menuShowKeyFrames = true;
             menuShowPoints = true;
