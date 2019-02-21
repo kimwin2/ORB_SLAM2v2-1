@@ -52,6 +52,7 @@ void SendClassToServer::RunKeyFrame(int command){
 
     vector<long unsigned int> cl;
     vector<long unsigned int> lel;
+    cv::Mat ctv = pKF->GetPose();
     cv::Mat cvt = pKF->GetPoseInverse();
     cv::Mat crt = pKF->GetCameraCenter();
     int pF = -1;
@@ -79,6 +80,10 @@ void SendClassToServer::RunKeyFrame(int command){
     msg.Parent = pF;
     msg.CovisibleList.swap(cl);
     msg.LoopEdgeList.swap(lel);
+    msg.Tcw = {ctv.at<float>(0,0),ctv.at<float>(0,1),ctv.at<float>(0,2),ctv.at<float>(0,3),
+    ctv.at<float>(1,0),ctv.at<float>(1,1),ctv.at<float>(1,2),ctv.at<float>(1,3),
+    ctv.at<float>(2,0),ctv.at<float>(2,1),ctv.at<float>(2,2),ctv.at<float>(2,3),
+    ctv.at<float>(3,0),ctv.at<float>(3,1),ctv.at<float>(3,2),ctv.at<float>(3,3)};
     msg.Twc = {cvt.at<float>(0,0),cvt.at<float>(0,1),cvt.at<float>(0,2),cvt.at<float>(0,3),
     cvt.at<float>(1,0),cvt.at<float>(1,1),cvt.at<float>(1,2),cvt.at<float>(1,3),
     cvt.at<float>(2,0),cvt.at<float>(2,1),cvt.at<float>(2,2),cvt.at<float>(2,3),
@@ -161,6 +166,7 @@ void SendClassToServer::RunMapPoint(int command){
     msg.mnFirstKFid = pMP->mnFirstKFid;
     msg.mnFirstFrame = pMP->mnFirstFrame;
     msg.nObs = pMP->nObs;
+
     mp_data_pub.publish(msg);
 }
 
@@ -189,6 +195,15 @@ void SendClassToServer::RunMapPoint(MapPoint* _pMP, int command){
     msg.mnFirstKFid = _pMP->mnFirstKFid;
     msg.mnFirstFrame = _pMP->mnFirstFrame;
     msg.nObs = _pMP->nObs;
+
+    msg.mTrackProjX = _pMP->mTrackProjX;
+    msg.mTrackProjY = _pMP->mTrackProjY;
+    msg.mTrackProjXR = _pMP->mTrackProjXR;
+    msg.mbTrackInView = _pMP->mbTrackInView;
+    msg.mnTrackScaleLevel = _pMP->mnTrackScaleLevel;
+    msg.mTrackViewCos = _pMP->mTrackViewCos;
+    msg.mnTrackReferenceForFrame = _pMP->mnTrackReferenceForFrame;
+
     mp_data_pub.publish(msg);
 }
 

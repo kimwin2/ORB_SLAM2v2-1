@@ -805,7 +805,7 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 }
 
 void System::SaveMap(const string &filename)
-{
+{/*
      cout << "save binary map" << endl;
 
     if(filename.length() > 0){
@@ -856,7 +856,7 @@ void System::SaveMap(const string &filename)
         
     mpLoopCloser->WaitForMemoryConnect = false;
     //mpLocalMapper->WaitForMemoryConnect = false;
-
+*/
 }
 bool System::LoadMap(const string &filename)
 {
@@ -936,6 +936,8 @@ bool System::LoadMap(){
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
+    mpTracker->SetKeyFrameDatabase(mpKeyFrameDatabase);
+    mpLoopCloser->SetKeyFrameDatabase(mpKeyFrameDatabase);
     mpMap->SetSendClassToServer(mpSendClassToServer);
 
     delete oldMap;
@@ -999,6 +1001,8 @@ bool System::ServiceLoadMap(const string &filename)
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
+    mpTracker->SetKeyFrameDatabase(mpKeyFrameDatabase);
+    mpLoopCloser->SetKeyFrameDatabase(mpKeyFrameDatabase);
     mpMap->SetSendClassToServer(mpSendClassToServer);    
 
     delete oldMap;
@@ -1060,7 +1064,7 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
     vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
     KeyFrame* KFini = *(mpMap->mvpKeyFrameOrigins.begin());
-
+    cout << "WTF?" << endl;
     mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
     unsigned long mnFrameId = 0;
     for(vector<KeyFrame*>::iterator itx = mpKFs.begin(); itx != mpKFs.end(); itx++){
@@ -1070,7 +1074,7 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
         if( (*itx)->mnFrameId > mnFrameId)
             mnFrameId = (*itx)->mnFrameId;
     }
-
+    cout << "WTF??" << endl;
     Frame::nNextId = mnFrameId;
     
     mpFrameDrawer->getMap(mpMap);
@@ -1078,14 +1082,16 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     mpTracker->getMap(mpMap);
     mpLocalMapper->getMap(mpMap);
     mpLoopCloser->getMap(mpMap);
+    mpTracker->SetKeyFrameDatabase(mpKeyFrameDatabase);
+    mpLoopCloser->SetKeyFrameDatabase(mpKeyFrameDatabase);
     mpMap->SetSendClassToServer(mpSendClassToServer);
 
     delete oldMap;
     delete oldDB;
 
     cout << "Done!" << endl;
-    //mpLoopCloser->WaitForMemoryConnect = false;
-    //mpLocalMapper->WaitForMemoryConnect = false;
+    mpLoopCloser->WaitForMemoryConnect = false;
+    mpLocalMapper->WaitForMemoryConnect = false;
     mpViewer->Release();
 }
 

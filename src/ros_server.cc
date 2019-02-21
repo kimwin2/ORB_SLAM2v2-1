@@ -42,10 +42,16 @@ public:
         string cmp = "CLIENT_MAP" + to_string(params.getClientId());
         client_map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmp,1000);
         new thread(&ServerViewer::Run,mServerViewer);
+        mapBinaryPath = params.getMapBinaryPath();
         cout << "Communicator Created" << endl;
     }
 
     void KeyFrameCallback(const ORB_SLAM2v2::KF::ConstPtr& msg){
+        float tcw[16] = {msg->Tcw[0],msg->Tcw[1],msg->Tcw[2],msg->Tcw[3],
+        msg->Tcw[4],msg->Tcw[5],msg->Tcw[6],msg->Tcw[7],
+        msg->Tcw[8],msg->Tcw[9],msg->Tcw[10],msg->Tcw[11],
+        msg->Tcw[12],msg->Tcw[13],msg->Tcw[14],msg->Tcw[15]};
+        cv::Mat Tcw(4,4,CV_32F,tcw);
         float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
         msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
         msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
@@ -56,11 +62,11 @@ public:
         vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
         vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
         if(msg->command == INSERT)
-            sm->AddKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
+            sm->AddKeyFrame(new ServerKeyFrame(msg));
         else if(msg->command == ERASE)
             sm->EraseKeyFrame(msg->mnId);
         else if(msg->command == UPDATE)
-            sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
+            sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Tcw, Twc, Ow, cl, msg->Parent, lel));
     }
 
     void MapPointCallback(const ORB_SLAM2v2::MP::ConstPtr& msg){
@@ -73,6 +79,11 @@ public:
     }
 
     void KeyFrameData(const ORB_SLAM2v2::KF::ConstPtr& msg){
+        float tcw[16] = {msg->Tcw[0],msg->Tcw[1],msg->Tcw[2],msg->Tcw[3],
+        msg->Tcw[4],msg->Tcw[5],msg->Tcw[6],msg->Tcw[7],
+        msg->Tcw[8],msg->Tcw[9],msg->Tcw[10],msg->Tcw[11],
+        msg->Tcw[12],msg->Tcw[13],msg->Tcw[14],msg->Tcw[15]};
+        cv::Mat Tcw(4,4,CV_32F,tcw);
         float twc[16] = {msg->Twc[0],msg->Twc[1],msg->Twc[2],msg->Twc[3],
         msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
         msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
@@ -88,7 +99,7 @@ public:
         }else if(msg->command == ERASE){
             sm->EraseKeyFrame(msg->mnId);
         }else if(msg->command == UPDATE){
-            sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Twc, Ow, cl, msg->Parent, lel));
+            sm->UpdateKeyFrame(new ServerKeyFrame(msg->mnId, Tcw, Twc, Ow, cl, msg->Parent, lel));
         }
     }
 
@@ -111,6 +122,7 @@ public:
     ros::Subscriber kf_sub;
     ros::Subscriber mp_sub;
     ros::Publisher client_map_pub;
+    const char* mapBinaryPath;
 
     int mnId = 0;
 
@@ -138,14 +150,17 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
                 mspMapPoints.insert({itx->first, pMP});
             }
         }
+        pMP->SetObservation();
     }
     cout << "mspMapPoints.insert" << endl;
     for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
-        KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
+        KeyFrame *pKF = mspKeyFrames[itx->first];
         if(itx->second->parentId != -1){
-            KeyFrame *parentKF = mspKeyFrames[itx->first];
-            if(parentKF)
+            KeyFrame *parentKF = mspKeyFrames[itx->second->parentId];
+            if(parentKF){
                 pKF->ChangeParent(parentKF);
+                parentKF->AddChild(pKF);
+            }
         }
     }
 

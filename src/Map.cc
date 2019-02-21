@@ -194,6 +194,7 @@ void Map::serialize(Archive &ar, const unsigned int version)
     // don't save mutex
     ar & mspMapPoints;
     ar & mvpKeyFrameOrigins;
+    cout << "mspKeyFrames" << endl;
     ar & mspKeyFrames;
     ar & mvpReferenceMapPoints;
     ar & mnMaxKFid & mnBigChangeIdx;

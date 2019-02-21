@@ -786,5 +786,8 @@ void LoopClosing::getMap(Map *pMap)
     mpMap = pMap;
 }
 
+void LoopClosing::SetKeyFrameDatabase(KeyFrameDatabase *pKeyFrameDatabase){
+    mpKeyFrameDB = pKeyFrameDatabase;
+}
 
 } //namespace ORB_SLAM

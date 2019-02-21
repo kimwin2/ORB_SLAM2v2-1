@@ -675,11 +675,12 @@ KeyFrame::KeyFrame(ServerKeyFrame* skf, Map* pMap):
     mbf(0.0), mb(0.0), mThDepth(0.0), N(skf->mvKeysUn.size()), mnScaleLevels(0), mfScaleFactor(0),
     mfLogScaleFactor(0.0), mvuRight(skf->mvuRight), mvDepth(skf->mvDepth),
     mnMinX(0), mnMinY(0), mnMaxX(0),
-    mnMaxY(0), mDescriptors(skf->mDescriptors), mFeatVec(skf->mFeatVec), mpMap(pMap)
+    mnMaxY(0), mDescriptors(skf->mDescriptors.clone()), mFeatVec(skf->mFeatVec), mvKeysUn(skf->mvKeysUn), mpMap(pMap)
 {
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mpKeyFrameDB = static_cast<KeyFrameDatabase*>(NULL);
     mpParent = static_cast<KeyFrame*>(NULL);
+    SetPose(skf->Tcw.clone());
 }
     
 
@@ -737,7 +738,7 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
     // Image bounds and calibration
     ar & const_cast<int &>(mnMinX) & const_cast<int &>(mnMinY) & const_cast<int &>(mnMaxX) & const_cast<int &>(mnMaxY);
     ar & const_cast<cv::Mat &>(mK);
-
+    cout << "mutex needed vars" << endl;
     // mutex needed vars, but don't lock mutex in the save/load procedure
     {
         unique_lock<mutex> lock_pose(mMutexPose);

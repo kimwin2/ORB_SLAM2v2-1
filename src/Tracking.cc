@@ -1487,11 +1487,11 @@ bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector
     mCurrentFrame.ComputeBoW();
-
+    cout << "Relocalization executed!" << endl;
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
     vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectRelocalizationCandidates(&mCurrentFrame);
-
+    cout << "vpCandidateKFs : " << vpCandidateKFs.size() << endl;
     if(vpCandidateKFs.empty())
         return false;
 
@@ -1511,7 +1511,7 @@ bool Tracking::Relocalization()
     vbDiscarded.resize(nKFs);
 
     int nCandidates=0;
-
+    cout << "nCandidates " << endl;
     for(int i=0; i<nKFs; i++)
     {
         KeyFrame* pKF = vpCandidateKFs[i];
@@ -1534,7 +1534,7 @@ bool Tracking::Relocalization()
             }
         }
     }
-
+    cout << "Alternatively " << endl;
     // Alternatively perform some iterations of P4P RANSAC
     // Until we found a camera pose supported by enough inliers
     bool bMatch = false;
@@ -1633,7 +1633,7 @@ bool Tracking::Relocalization()
             }
         }
     }
-
+    cout << "bMatch : " << bMatch << endl;
     if(!bMatch)
     {
         mCurrentFrame.mTcw = cv::Mat::zeros(0, 0, CV_32F); // set mTcw back to empty if relocation is failed
@@ -1644,7 +1644,7 @@ bool Tracking::Relocalization()
         mnLastRelocFrameId = mCurrentFrame.mnId;
         return true;
     }
-
+    cout << "Relocalization Finished " << endl;
 }
 
 void Tracking::Reset()
@@ -1738,6 +1738,11 @@ void Tracking::InformOnlyTracking(const bool &flag)
 void Tracking::getMap(Map *pMap)
 {
     mpMap = pMap;
+    mState = LOST;
+}
+
+void Tracking::SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDatabase){
+    mpKeyFrameDB = pKeyFrameDatabase;
     mState = LOST;
 }
 

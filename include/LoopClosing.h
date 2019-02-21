@@ -81,6 +81,7 @@ public:
     bool isFinished();
 
     void getMap(Map *pMap);
+    void SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDatabase);
 
     bool WaitForMemoryConnect;
     bool ReadyForMemoryConnect;

@@ -131,6 +131,7 @@ public:
 
     void Reset();
     void getMap(Map *pMap);
+    void SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDatabase);
 
 protected:
 

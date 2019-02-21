@@ -6,6 +6,7 @@ uint64[] CovisibleList
 uint32 Parent
 uint64[] LoopEdgeList
 float32[16] Twc
+float32[16] Tcw
 float32[3] Ow
 
 uint32 nNextId

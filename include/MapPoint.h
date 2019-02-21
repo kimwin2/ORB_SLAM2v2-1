@@ -56,6 +56,7 @@ public:
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);
+    void SetObservation();
     void EraseObservation(KeyFrame* pKF);
 
     int GetIndexInKeyFrame(KeyFrame* pKF);

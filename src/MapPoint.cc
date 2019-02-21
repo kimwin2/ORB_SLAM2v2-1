@@ -118,6 +118,10 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
         nObs++;
 }
 
+void MapPoint::SetObservation(){
+    mpRefKF = mObservations.begin()->first;
+}
+
 void MapPoint::EraseObservation(KeyFrame* pKF)
 {
     bool bBad=false;
@@ -429,8 +433,8 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
 }
 
 MapPoint::MapPoint(ServerMapPoint *smp, Map* pMap):
-    mnId(smp->mnId), UID(smp->GetUID()), nObs(smp->nObs), mnTrackReferenceForFrame(0),
-    mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
+    mnId(smp->mnId), UID(smp->GetUID()), nObs(smp->nObs), mnTrackReferenceForFrame(smp->mnTrackReferenceForFrame),
+    mnLastFrameSeen(smp->mnLastFrameSeen), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
     mnCorrectedReference(0), mnBAGlobalForKF(0),mnVisible(1), mnFound(1), mbBad(false),
     mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap),
     mnFirstKFid(smp->mnFirstKFid), mnFirstFrame(smp->mnFirstFrame)
