@@ -56,6 +56,11 @@ public:
     float mTrackViewCos;
     long unsigned int mnTrackReferenceForFrame;
     long unsigned int mnLastFrameSeen;
+
+    int mnVisible;
+    int mnFound;
+    float mfMinDistance;
+    float mfMaxDistance;
 };
 
 class ServerKeyFrame
@@ -124,12 +129,20 @@ public:
     long unsigned int mnRelocQuery;
     int mnRelocWords;
     float mRelocScore;
+
+    // Scale
+    int mnScaleLevels;
+    float mfScaleFactor;
+    float mfLogScaleFactor;
+    vector<float> mvScaleFactors;
+    vector<float> mvLevelSigma2;
+    vector<float> mvInvLevelSigma2;
 };
 
 class ServerMap
 {
 public:
-    ServerMap(){};
+    ServerMap():ConnectClient(true){};
 
     void AddMapPoint(ServerMapPoint *smp);
     void AddKeyFrame(ServerKeyFrame *skf);
@@ -139,10 +152,13 @@ public:
     void UpdateKeyFrame(ServerKeyFrame *skf);
     unsigned int GetKeyFrameOrigin();
     void Clear();
+    void ConnectToClient();
+    void DisconnectToClient();
 
     map<unsigned int, ServerMapPoint*> GetAllMapPoints();
     map<unsigned int, ServerKeyFrame*> GetAllKeyFrames();
     mutex mMutexMap;
+    bool ConnectClient;
 
 private:
     // serialize is recommended to be private

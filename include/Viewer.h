@@ -62,6 +62,8 @@ public:
 
     void setServiceLoadedMap(string filename);
 
+    void RequestLocalization();
+
 private:
 
     bool Stop();
@@ -86,13 +88,13 @@ private:
     bool mbStopped;
     bool mbStopRequested;
     bool mbReuseMap;
+    bool mbLocalizationRequested;
 
     std::mutex mMutexStop;
+    std::mutex mMutexLocalizationRequested;
    
     string mstrfilename;
     bool mbServiceMapLoad;
-
-
 };
 
 }

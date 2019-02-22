@@ -18,5 +18,10 @@ float32 mTrackViewCos
 uint64 mnTrackReferenceForFrame
 uint64 mnFuseCandidateForKF
 
+int32 mnVisible
+int32 mnFound
+float32 mfMinDistance
+float32 mfMaxDistance
+
 Observation[] mObservations
 uint8[32] mDescriptor

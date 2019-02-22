@@ -4,7 +4,7 @@
 namespace ORB_SLAM2
 {
 
-ServerViewer::ServerViewer(MapDrawer *pSMapDrawer, const string &strSettingPath):mpSMapDrawer(pSMapDrawer){
+ServerViewer::ServerViewer(MapDrawer *pSMapDrawer, const string &strSettingPath):mpSMapDrawer(pSMapDrawer), bConnect(true){
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
 
     float fps = fSettings["Camera.fps"];
@@ -26,7 +26,7 @@ ServerViewer::ServerViewer(MapDrawer *pSMapDrawer, const string &strSettingPath)
     mViewpointF = fSettings["Viewer.ViewpointF"];
 }
 
-ServerViewer::ServerViewer(ServerMap *pSMap, ORBParams params, MapDrawer *pSMapDrawer, const string &strSettingPath):mpSMapDrawer(pSMapDrawer), mpSMap(pSMap){
+ServerViewer::ServerViewer(ServerMap *pSMap, ORBParams params, MapDrawer *pSMapDrawer, const string &strSettingPath):mpSMapDrawer(pSMapDrawer), mpSMap(pSMap), bConnect(true){
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
 
     float fps = fSettings["Camera.fps"];
@@ -67,7 +67,7 @@ void ServerViewer::Run(){
     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
-    pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",true,true);
+    pangolin::Var<bool> menuConnect("menu.Connect",true,true);
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
     pangolin::Var<bool> menuSave("menu.Save",false,false);
     pangolin::Var<bool> menuLoad("menu.Load",false,false);
@@ -101,6 +101,17 @@ void ServerViewer::Run(){
 
         pangolin::FinishFrame();
 
+        if(menuConnect && !bConnect)
+        {
+            mpSMap->ConnectToClient();
+            bConnect = true;
+        }
+        else if(!menuConnect && bConnect)
+        {
+            mpSMap->DisconnectToClient();
+            bConnect = false;
+        }
+
         if(menuReset){
             mpSMap->Clear();
             menuReset = false;
@@ -132,6 +143,7 @@ void ServerViewer::Run(){
         if(menuSend){
             std_msgs::String msg;
             msg.data = "Hello?" + clientId;
+            cout << msg.data << endl;
             map_pub.publish(msg);
             menuSend = false;
         }

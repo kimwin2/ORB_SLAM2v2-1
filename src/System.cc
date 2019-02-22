@@ -1030,7 +1030,6 @@ void System::RequestServiceLoadMap(string filename){
 
 void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     cout << "New map was received!" << endl;
-    ActivateLocalizationMode();
     stringstream sarray(msg->data);
     Map *oldMap = mpMap;
     KeyFrameDatabase *oldDB = mpKeyFrameDatabase;
@@ -1043,6 +1042,7 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     mpViewer->RequestStop();
     while(!mpViewer->isStopped())
     {
+        cout << "Wait for stop in ReceiveMapCallback" << endl;
         std::this_thread::sleep_for(std::chrono::microseconds(3000));
     }
 
@@ -1064,17 +1064,26 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     vector<KeyFrame*> mpKFs = mpMap->GetAllKeyFrames();
     vector<MapPoint*> mpMPs = mpMap->GetAllMapPoints();
     KeyFrame* KFini = *(mpMap->mvpKeyFrameOrigins.begin());
-    cout << "WTF?" << endl;
     mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
     unsigned long mnFrameId = 0;
+
     for(vector<KeyFrame*>::iterator itx = mpKFs.begin(); itx != mpKFs.end(); itx++){
+        if(*itx==NULL)
+            continue;
         (*itx)->SetORBvocabulary(mpVocabulary);
         (*itx)->ComputeBoW();
         mpKeyFrameDatabase->add(*itx);
         if( (*itx)->mnFrameId > mnFrameId)
             mnFrameId = (*itx)->mnFrameId;
+        set<MapPoint*> vmp = (*itx)->GetMapPoints();
     }
-    cout << "WTF??" << endl;
+
+    for(vector<MapPoint*>::iterator itx = mpMPs.begin(); itx != mpMPs.end(); itx++){
+        if(*itx==NULL)
+            continue;
+        (*itx)->UpdateNormalAndDepth();
+    }
+
     Frame::nNextId = mnFrameId;
     
     mpFrameDrawer->getMap(mpMap);
@@ -1093,6 +1102,7 @@ void System::ReceiveMapCallback(const std_msgs::String::ConstPtr& msg){
     mpLoopCloser->WaitForMemoryConnect = false;
     mpLocalMapper->WaitForMemoryConnect = false;
     mpViewer->Release();
+    mpViewer->RequestLocalization();
 }
 
 } //namespace ORB_SLAM

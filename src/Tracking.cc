@@ -1074,11 +1074,8 @@ bool Tracking::TrackLocalMap()
 {
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
-
     UpdateLocalMap();
-
     SearchLocalPoints();
-
     // Optimize Pose
     Optimizer::PoseOptimization(&mCurrentFrame);
     mnMatchesInliers = 0;
@@ -1104,12 +1101,10 @@ bool Tracking::TrackLocalMap()
 
         }
     }
-
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
-
     if(mnMatchesInliers<30)
         return false;
     else
@@ -1487,11 +1482,9 @@ bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector
     mCurrentFrame.ComputeBoW();
-    cout << "Relocalization executed!" << endl;
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
     vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectRelocalizationCandidates(&mCurrentFrame);
-    cout << "vpCandidateKFs : " << vpCandidateKFs.size() << endl;
     if(vpCandidateKFs.empty())
         return false;
 
@@ -1511,7 +1504,6 @@ bool Tracking::Relocalization()
     vbDiscarded.resize(nKFs);
 
     int nCandidates=0;
-    cout << "nCandidates " << endl;
     for(int i=0; i<nKFs; i++)
     {
         KeyFrame* pKF = vpCandidateKFs[i];
@@ -1534,7 +1526,6 @@ bool Tracking::Relocalization()
             }
         }
     }
-    cout << "Alternatively " << endl;
     // Alternatively perform some iterations of P4P RANSAC
     // Until we found a camera pose supported by enough inliers
     bool bMatch = false;
@@ -1623,7 +1614,6 @@ bool Tracking::Relocalization()
                     }
                 }
 
-
                 // If the pose is supported by enough inliers stop ransacs and continue
                 if(nGood>=50)
                 {
@@ -1633,7 +1623,6 @@ bool Tracking::Relocalization()
             }
         }
     }
-    cout << "bMatch : " << bMatch << endl;
     if(!bMatch)
     {
         mCurrentFrame.mTcw = cv::Mat::zeros(0, 0, CV_32F); // set mTcw back to empty if relocation is failed
@@ -1644,7 +1633,6 @@ bool Tracking::Relocalization()
         mnLastRelocFrameId = mCurrentFrame.mnId;
         return true;
     }
-    cout << "Relocalization Finished " << endl;
 }
 
 void Tracking::Reset()

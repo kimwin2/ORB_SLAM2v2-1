@@ -85,6 +85,8 @@ public:
     float GetMaxDistanceInvariance();
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
+    int GetVisible();
+    int GetmnFound();
 
 public:
     // for serialization

@@ -30,6 +30,11 @@ ServerMapPoint::ServerMapPoint(const ORB_SLAM2v2::MP::ConstPtr& msg){
     mnTrackScaleLevel = msg->mnTrackScaleLevel;
     mTrackViewCos = msg->mTrackViewCos;
     mnTrackReferenceForFrame = msg->mnTrackReferenceForFrame;
+
+    mnVisible = msg->mnVisible;
+    mnFound = msg->mnFound;
+    mfMinDistance = msg->mfMinDistance;
+    mfMaxDistance = msg->mfMaxDistance;
 }
 
 ServerMapPoint::ServerMapPoint(unsigned int uid, unsigned int mnid, cv::Mat pos){
@@ -95,6 +100,16 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     mLoopScore = msg->mLoopScore;
     mnRelocQuery = msg->mnRelocQuery;
     mRelocScore = msg->mRelocScore;
+
+    mnScaleLevels = msg->mnScaleLevels;
+    mfScaleFactor = msg->mfScaleFactor;
+    mfLogScaleFactor = msg->mfLogScaleFactor;
+    vector<float> mvs(begin(msg->mvScaleFactors), end(msg->mvScaleFactors));
+    vector<float> mvl(begin(msg->mvLevelSigma2), end(msg->mvLevelSigma2));
+    vector<float> mvi(begin(msg->mvInvLevelSigma2), end(msg->mvInvLevelSigma2));
+    mvScaleFactors.swap(mvs);
+    mvLevelSigma2.swap(mvl);
+    mvInvLevelSigma2.swap(mvi);
 
     vector<float> mRight(begin(msg->mvuRight), end(msg->mvuRight));
     vector<float> mDepth(begin(msg->mvDepth), end(msg->mvDepth));
@@ -201,6 +216,14 @@ void ServerMap::Clear(){
     unique_lock<mutex> lock(mMutexMap);
     mspServerKeyFrames.clear();
     mspServerMapPoints.clear();
+}
+
+void ServerMap::ConnectToClient(){
+    ConnectClient = true;
+}
+
+void ServerMap::DisconnectToClient(){
+    ConnectClient = false;
 }
 
 

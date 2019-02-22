@@ -28,7 +28,7 @@ namespace ORB_SLAM2
 
 Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath, bool mbReuseMap_):
     mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
-    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbReuseMap(mbReuseMap_)
+    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbReuseMap(mbReuseMap_), mbLocalizationRequested(false)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
 
@@ -117,6 +117,11 @@ void Viewer::Run()
             bFollow = false;
         }
 
+        if(mbLocalizationRequested){
+            menuLocalizationMode = true;
+            mbLocalizationRequested = false;
+        }
+
         if(menuLocalizationMode && !bLocalizationMode)
         {
             mpSystem->ActivateLocalizationMode();
@@ -203,6 +208,7 @@ void Viewer::Run()
         {
             while(isStopped())
             {
+                cout << "Wait for stop in Viewer mbstopped : " << mbStopped << " mbStopRequested : " << mbStopRequested << endl;
                 std::this_thread::sleep_for(std::chrono::microseconds(3000));
             }
         }
@@ -212,6 +218,11 @@ void Viewer::Run()
     }
 
     SetFinish();
+}
+
+void Viewer::RequestLocalization(){
+    unique_lock<mutex> lock(mMutexLocalizationRequested);
+    mbLocalizationRequested = true;
 }
 
 void Viewer::RequestFinish()
@@ -255,6 +266,7 @@ bool Viewer::Stop()
 {
     unique_lock<mutex> lock(mMutexStop);
     unique_lock<mutex> lock2(mMutexFinish);
+    unique_lock<mutex> lock3(mMutexLocalizationRequested);
 
     if(mbFinishRequested)
         return false;

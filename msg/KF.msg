@@ -31,6 +31,13 @@ uint64 mnRelocQuery
 int32 mnRelocWords
 float32 mRelocScore
 
+int32 mnScaleLevels
+float32 mfScaleFactor
+float32 mfLogScaleFactor
+float32[] mvScaleFactors
+float32[] mvLevelSigma2
+float32[] mvInvLevelSigma2
+
 float32[] mvuRight
 float32[] mvDepth
 

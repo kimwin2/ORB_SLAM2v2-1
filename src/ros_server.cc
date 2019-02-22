@@ -47,6 +47,8 @@ public:
     }
 
     void KeyFrameCallback(const ORB_SLAM2v2::KF::ConstPtr& msg){
+        if(!sm->ConnectClient)
+            return;
         float tcw[16] = {msg->Tcw[0],msg->Tcw[1],msg->Tcw[2],msg->Tcw[3],
         msg->Tcw[4],msg->Tcw[5],msg->Tcw[6],msg->Tcw[7],
         msg->Tcw[8],msg->Tcw[9],msg->Tcw[10],msg->Tcw[11],
@@ -70,6 +72,8 @@ public:
     }
 
     void MapPointCallback(const ORB_SLAM2v2::MP::ConstPtr& msg){
+        if(!sm->ConnectClient)
+            return;
         if(msg->command == INSERT)
             sm->AddMapPoint(new ServerMapPoint(msg));
         else if(msg->command == ERASE)
@@ -79,6 +83,8 @@ public:
     }
 
     void KeyFrameData(const ORB_SLAM2v2::KF::ConstPtr& msg){
+        if(!sm->ConnectClient)
+            return;
         float tcw[16] = {msg->Tcw[0],msg->Tcw[1],msg->Tcw[2],msg->Tcw[3],
         msg->Tcw[4],msg->Tcw[5],msg->Tcw[6],msg->Tcw[7],
         msg->Tcw[8],msg->Tcw[9],msg->Tcw[10],msg->Tcw[11],
@@ -104,6 +110,8 @@ public:
     }
 
     void MapPointData(const ORB_SLAM2v2::MP::ConstPtr& msg){
+        if(!sm->ConnectClient)
+            return;
         if(msg->command == INSERT)
             sm->AddMapPoint(new ServerMapPoint(msg));
         else if(msg->command == ERASE)
@@ -137,6 +145,8 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
     map<unsigned int, ServerKeyFrame*> mspSKF = sm->GetAllKeyFrames();
     for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
         KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
+        if(pKF==NULL)
+            continue;
         mspKeyFrames.insert({itx->first, pKF});
     }
     for(map<unsigned int,ServerMapPoint*>::iterator itx = mspSMP.begin(); itx != mspSMP.end(); itx++){
@@ -201,7 +211,7 @@ int main(int argc, char *argv[]){
     nh.param("ClientId", ClientId, ClientId);
     nh.param("mapBinaryPath", mapBinaryPath, mapBinaryPath);
 
-    params.setMapBinaryPath(mapBinaryPath.c_str());
+    params.setMapBinaryPath((mapBinaryPath + "server" +  to_string(ClientId)).c_str());
     params.setNodeHandle(n);
     params.setClientId(ClientId);
 

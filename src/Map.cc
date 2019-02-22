@@ -54,6 +54,8 @@ void Map::AddMapPoint(MapPoint *pMP)
 void Map::AddKeyFrame(map<unsigned int, KeyFrame*> mspKFs){
     unique_lock<mutex> lock(mMutexMap);
     for(map<unsigned int,KeyFrame*>::iterator itx = mspKFs.begin(); itx != mspKFs.end(); itx++){
+        if(itx->second==NULL)
+            continue;
         mspKeyFrames.insert(itx->second);
     }
 }
@@ -61,6 +63,8 @@ void Map::AddKeyFrame(map<unsigned int, KeyFrame*> mspKFs){
 void Map::AddMapPoint(map<unsigned int, MapPoint*> mspMPs){
     unique_lock<mutex> lock(mMutexMap);
     for(map<unsigned int,MapPoint*>::iterator itx = mspMPs.begin(); itx != mspMPs.end(); itx++){
+        if(itx->second==NULL)
+            continue;
         mspMapPoints.insert(itx->second);
     }
 }
