@@ -27,6 +27,7 @@ private:
     int clientId;
     string mapBinaryPath;
     ros::Publisher map_pub;
+    bool bConnect;
 };
 
 }

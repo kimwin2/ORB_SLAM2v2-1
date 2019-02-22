@@ -46,6 +46,21 @@ public:
     int nObs;
     map<unsigned int, unsigned int> mObservations;
     cv::Mat mDescriptor;
+    
+    // Variables used by the tracking
+    float mTrackProjX;
+    float mTrackProjY;
+    float mTrackProjXR;
+    bool mbTrackInView;
+    int mnTrackScaleLevel;
+    float mTrackViewCos;
+    long unsigned int mnTrackReferenceForFrame;
+    long unsigned int mnLastFrameSeen;
+
+    int mnVisible;
+    int mnFound;
+    float mfMinDistance;
+    float mfMaxDistance;
 };
 
 class ServerKeyFrame
@@ -54,9 +69,7 @@ public:
     ServerKeyFrame(){};
     
     ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg);
-    ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist);
-    ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
-     cv::Mat desc, DBoW2::FeatureVector mF, vector<cv::KeyPoint> mvK, vector<unsigned long int> mvpMP);
+    ServerKeyFrame(unsigned int mnid, cv::Mat tcw, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist);
 
     unsigned int GetKeyFrameMnId();
     cv::Mat GetPoseInverse();
@@ -77,6 +90,7 @@ private:
 
 public:
     cv::Mat Twc;
+    cv::Mat Tcw;
     cv::Mat Ow;
     vector<long unsigned int> CovisibleList;
     int parentId;
@@ -115,12 +129,20 @@ public:
     long unsigned int mnRelocQuery;
     int mnRelocWords;
     float mRelocScore;
+
+    // Scale
+    int mnScaleLevels;
+    float mfScaleFactor;
+    float mfLogScaleFactor;
+    vector<float> mvScaleFactors;
+    vector<float> mvLevelSigma2;
+    vector<float> mvInvLevelSigma2;
 };
 
 class ServerMap
 {
 public:
-    ServerMap(){};
+    ServerMap():ConnectClient(true){};
 
     void AddMapPoint(ServerMapPoint *smp);
     void AddKeyFrame(ServerKeyFrame *skf);
@@ -130,10 +152,13 @@ public:
     void UpdateKeyFrame(ServerKeyFrame *skf);
     unsigned int GetKeyFrameOrigin();
     void Clear();
+    void ConnectToClient();
+    void DisconnectToClient();
 
     map<unsigned int, ServerMapPoint*> GetAllMapPoints();
     map<unsigned int, ServerKeyFrame*> GetAllKeyFrames();
     mutex mMutexMap;
+    bool ConnectClient;
 
 private:
     // serialize is recommended to be private

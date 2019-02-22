@@ -118,6 +118,10 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
         nObs++;
 }
 
+void MapPoint::SetObservation(){
+    mpRefKF = mObservations.begin()->first;
+}
+
 void MapPoint::EraseObservation(KeyFrame* pKF)
 {
     bool bBad=false;
@@ -354,7 +358,7 @@ void MapPoint::UpdateNormalAndDepth()
 
     if(observations.empty())
         return;
-
+    
     cv::Mat normal = cv::Mat::zeros(3,1,CV_32F);
     int n=0;
     for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
@@ -365,13 +369,11 @@ void MapPoint::UpdateNormalAndDepth()
         normal = normal + normali/cv::norm(normali);
         n++;
     }
-
     cv::Mat PC = Pos - pRefKF->GetCameraCenter();
     const float dist = cv::norm(PC);
     const int level = pRefKF->mvKeysUn[observations[pRefKF]].octave;
     const float levelScaleFactor =  pRefKF->mvScaleFactors[level];
     const int nLevels = pRefKF->mnScaleLevels;
-
     {
         unique_lock<mutex> lock3(mMutexPos);
         mfMaxDistance = dist*levelScaleFactor;
@@ -428,11 +430,19 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
     return nScale;
 }
 
+int MapPoint::GetVisible(){
+    return mnVisible;
+}
+
+int MapPoint::GetmnFound(){
+    return mnFound;
+}
+
 MapPoint::MapPoint(ServerMapPoint *smp, Map* pMap):
-    mnId(smp->mnId), UID(smp->GetUID()), nObs(smp->nObs), mnTrackReferenceForFrame(0),
-    mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
-    mnCorrectedReference(0), mnBAGlobalForKF(0),mnVisible(1), mnFound(1), mbBad(false),
-    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap),
+    mnId(smp->mnId), UID(smp->GetUID()), nObs(smp->nObs), mnTrackReferenceForFrame(smp->mnTrackReferenceForFrame),
+    mnLastFrameSeen(smp->mnLastFrameSeen), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
+    mnCorrectedReference(0), mnBAGlobalForKF(0),mnVisible(smp->mnVisible), mnFound(smp->mnFound), mbBad(false),
+    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(smp->mfMinDistance), mfMaxDistance(smp->mfMaxDistance), mpMap(pMap),
     mnFirstKFid(smp->mnFirstKFid), mnFirstFrame(smp->mnFirstFrame)
 {
     mWorldPos = smp->mWorldPos.clone();

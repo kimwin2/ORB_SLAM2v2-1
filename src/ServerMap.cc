@@ -22,6 +22,19 @@ ServerMapPoint::ServerMapPoint(const ORB_SLAM2v2::MP::ConstPtr& msg){
     for(int i=0;i<32;i++){
         mDescriptor.at<unsigned char>(i) = msg->mDescriptor[i];
     }
+
+    mTrackProjX = msg->mTrackProjX;
+    mTrackProjY = msg->mTrackProjY;
+    mTrackProjXR = msg->mTrackProjXR;
+    mbTrackInView = msg->mbTrackInView;
+    mnTrackScaleLevel = msg->mnTrackScaleLevel;
+    mTrackViewCos = msg->mTrackViewCos;
+    mnTrackReferenceForFrame = msg->mnTrackReferenceForFrame;
+
+    mnVisible = msg->mnVisible;
+    mnFound = msg->mnFound;
+    mfMinDistance = msg->mfMinDistance;
+    mfMaxDistance = msg->mfMaxDistance;
 }
 
 ServerMapPoint::ServerMapPoint(unsigned int uid, unsigned int mnid, cv::Mat pos){
@@ -51,8 +64,13 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     msg->Twc[4],msg->Twc[5],msg->Twc[6],msg->Twc[7],
     msg->Twc[8],msg->Twc[9],msg->Twc[10],msg->Twc[11],
     msg->Twc[12],msg->Twc[13],msg->Twc[14],msg->Twc[15]};
+    float tcw[16] = {msg->Tcw[0],msg->Tcw[1],msg->Tcw[2],msg->Tcw[3],
+    msg->Tcw[4],msg->Tcw[5],msg->Tcw[6],msg->Tcw[7],
+    msg->Tcw[8],msg->Tcw[9],msg->Tcw[10],msg->Tcw[11],
+    msg->Tcw[12],msg->Tcw[13],msg->Tcw[14],msg->Tcw[15]};
     float ow[3] = {msg->Ow[0],msg->Ow[1],msg->Ow[2]};
     cv::Mat mTwc(4,4,CV_32F,twc);
+    cv::Mat mTcw(4,4,CV_32F,tcw);
     cv::Mat mOw(3,1,CV_32F,ow);
     vector<long unsigned int> cl(begin(msg->CovisibleList), end(msg->CovisibleList));
     vector<long unsigned int> lel(begin(msg->LoopEdgeList), end(msg->LoopEdgeList));
@@ -60,6 +78,7 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
 
     mnId = msg->mnId;
     Twc = mTwc.clone();
+    Tcw = mTcw.clone();
     Ow = mOw.clone();
     parentId = msg->Parent;
     CovisibleList.swap(cl);
@@ -82,28 +101,25 @@ ServerKeyFrame::ServerKeyFrame(const ORB_SLAM2v2::KF::ConstPtr& msg){
     mnRelocQuery = msg->mnRelocQuery;
     mRelocScore = msg->mRelocScore;
 
+    mnScaleLevels = msg->mnScaleLevels;
+    mfScaleFactor = msg->mfScaleFactor;
+    mfLogScaleFactor = msg->mfLogScaleFactor;
+    vector<float> mvs(begin(msg->mvScaleFactors), end(msg->mvScaleFactors));
+    vector<float> mvl(begin(msg->mvLevelSigma2), end(msg->mvLevelSigma2));
+    vector<float> mvi(begin(msg->mvInvLevelSigma2), end(msg->mvInvLevelSigma2));
+    mvScaleFactors.swap(mvs);
+    mvLevelSigma2.swap(mvl);
+    mvInvLevelSigma2.swap(mvi);
+
     vector<float> mRight(begin(msg->mvuRight), end(msg->mvuRight));
     vector<float> mDepth(begin(msg->mvDepth), end(msg->mvDepth));
     mvuRight.swap(mRight);
     mvDepth.swap(mDepth);
 }
 
-ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist,
-     cv::Mat desc, DBoW2::FeatureVector mF, vector<cv::KeyPoint> mvK, vector<unsigned long int> mvpMP){
+ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat tcw, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist){
     mnId = mnid;
-    Twc = twc.clone();
-    Ow = ow.clone();
-    CovisibleList.swap(clist);
-    parentId = parentid;
-    LoopEdgeList.swap(llist);
-    mDescriptors = desc.clone();
-    mFeatVec.swap(mF);
-    mvKeysUn.swap(mvK);
-    //mvpMapPoints.swap(mvpMP);
-}
-
-ServerKeyFrame::ServerKeyFrame(unsigned int mnid, cv::Mat twc, cv::Mat ow, vector<long unsigned int>  clist, int parentid, vector<long unsigned int>  llist){
-    mnId = mnid;
+    Tcw = tcw.clone();
     Twc = twc.clone();
     Ow = ow.clone();
     CovisibleList.swap(clist);
@@ -200,6 +216,14 @@ void ServerMap::Clear(){
     unique_lock<mutex> lock(mMutexMap);
     mspServerKeyFrames.clear();
     mspServerMapPoints.clear();
+}
+
+void ServerMap::ConnectToClient(){
+    ConnectClient = true;
+}
+
+void ServerMap::DisconnectToClient(){
+    ConnectClient = false;
 }
 
 

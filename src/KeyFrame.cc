@@ -672,14 +672,15 @@ KeyFrame::KeyFrame(ServerKeyFrame* skf, Map* pMap):
     mnTrackReferenceForFrame(skf->mnTrackReferenceForFrame), mnFuseTargetForKF(skf->mnFuseTargetForKF), mnBALocalForKF(skf->mnBALocalForKF), mnBAFixedForKF(skf->mnBAFixedForKF),
     mnLoopQuery(skf->mnLoopQuery), mnLoopWords(skf->mnLoopWords), mnRelocQuery(skf->mnRelocQuery), mnRelocWords(skf->mnRelocWords), mnBAGlobalForKF(0),
     fx(0.0), fy(0.0), cx(0.0), cy(0.0), invfx(0.0), invfy(0.0),
-    mbf(0.0), mb(0.0), mThDepth(0.0), N(skf->mvKeysUn.size()), mnScaleLevels(0), mfScaleFactor(0),
-    mfLogScaleFactor(0.0), mvuRight(skf->mvuRight), mvDepth(skf->mvDepth),
-    mnMinX(0), mnMinY(0), mnMaxX(0),
-    mnMaxY(0), mDescriptors(skf->mDescriptors), mFeatVec(skf->mFeatVec), mpMap(pMap)
+    mbf(0.0), mb(0.0), mThDepth(0.0), N(skf->mvKeysUn.size()), mnScaleLevels(skf->mnScaleLevels), mfScaleFactor(skf->mfScaleFactor),
+    mfLogScaleFactor(skf->mfLogScaleFactor), mvuRight(skf->mvuRight), mvDepth(skf->mvDepth), mvScaleFactors(skf->mvScaleFactors),
+    mnMinX(0), mnMinY(0), mnMaxX(0), mvLevelSigma2(skf->mvLevelSigma2), mvInvLevelSigma2(skf->mvInvLevelSigma2),
+    mnMaxY(0), mDescriptors(skf->mDescriptors.clone()), mFeatVec(skf->mFeatVec), mvKeysUn(skf->mvKeysUn), mpMap(pMap)
 {
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mpKeyFrameDB = static_cast<KeyFrameDatabase*>(NULL);
     mpParent = static_cast<KeyFrame*>(NULL);
+    SetPose(skf->Tcw.clone());
 }
     
 
@@ -698,6 +699,7 @@ KeyFrame::KeyFrame():
 template<class Archive>
 void KeyFrame::serialize(Archive &ar, const unsigned int version)
 {
+    cout << "ar & nNextId" << endl;
     // no mutex needed vars
     ar & nNextId;
     ar & mnId;
@@ -727,6 +729,7 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
     ar & const_cast<std::vector<float> &>(mvuRight);
     ar & const_cast<std::vector<float> &>(mvDepth);
     ar & const_cast<cv::Mat &>(mDescriptors);
+    cout << "Bow" << endl;
     // Bow
     ar & mBowVec & mFeatVec;
     // Pose relative to parent
@@ -737,7 +740,7 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
     // Image bounds and calibration
     ar & const_cast<int &>(mnMinX) & const_cast<int &>(mnMinY) & const_cast<int &>(mnMaxX) & const_cast<int &>(mnMaxY);
     ar & const_cast<cv::Mat &>(mK);
-
+    cout << "mutex needed vars" << endl;
     // mutex needed vars, but don't lock mutex in the save/load procedure
     {
         unique_lock<mutex> lock_pose(mMutexPose);

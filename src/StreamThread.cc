@@ -52,6 +52,7 @@ void SendClassToServer::RunKeyFrame(int command){
 
     vector<long unsigned int> cl;
     vector<long unsigned int> lel;
+    cv::Mat ctv = pKF->GetPose();
     cv::Mat cvt = pKF->GetPoseInverse();
     cv::Mat crt = pKF->GetCameraCenter();
     int pF = -1;
@@ -79,6 +80,10 @@ void SendClassToServer::RunKeyFrame(int command){
     msg.Parent = pF;
     msg.CovisibleList.swap(cl);
     msg.LoopEdgeList.swap(lel);
+    msg.Tcw = {ctv.at<float>(0,0),ctv.at<float>(0,1),ctv.at<float>(0,2),ctv.at<float>(0,3),
+    ctv.at<float>(1,0),ctv.at<float>(1,1),ctv.at<float>(1,2),ctv.at<float>(1,3),
+    ctv.at<float>(2,0),ctv.at<float>(2,1),ctv.at<float>(2,2),ctv.at<float>(2,3),
+    ctv.at<float>(3,0),ctv.at<float>(3,1),ctv.at<float>(3,2),ctv.at<float>(3,3)};
     msg.Twc = {cvt.at<float>(0,0),cvt.at<float>(0,1),cvt.at<float>(0,2),cvt.at<float>(0,3),
     cvt.at<float>(1,0),cvt.at<float>(1,1),cvt.at<float>(1,2),cvt.at<float>(1,3),
     cvt.at<float>(2,0),cvt.at<float>(2,1),cvt.at<float>(2,2),cvt.at<float>(2,3),
@@ -103,19 +108,22 @@ void SendClassToServer::RunKeyFrame(int command){
     msg.mnRelocQuery = pKF->mnRelocQuery;
     msg.mnRelocWords = pKF->mnRelocWords;
     msg.mRelocScore = pKF->mRelocScore;
-/*
-    vector<MapPoint*> mvpMP = pKF->GetMapPointMatches();
-    msg.mvpMapPoints.resize(mvpMP.size());
-    for(int i = 0; i < mvpMP.size(); i++){
-        if(mvpMP[i]==NULL){
-            msg.mvpMapPoints[i] = 0;
-        }else{
-            msg.mvpMapPoints[i] = mvpMP[i]->UID;
-        }        
+    
+    msg.mnScaleLevels = pKF->mnScaleLevels;
+    msg.mfScaleFactor = pKF->mfScaleFactor;
+    msg.mfLogScaleFactor = pKF->mfLogScaleFactor;
+    for(int i = 0; i < pKF->mvScaleFactors.size(); i++){
+        msg.mvScaleFactors.push_back(pKF->mvScaleFactors[i]);
     }
-*/
+    for(int i = 0; i < pKF->mvLevelSigma2.size(); i++){
+        msg.mvLevelSigma2.push_back(pKF->mvLevelSigma2[i]);
+    }
+    for(int i = 0; i < pKF->mvInvLevelSigma2.size(); i++){
+        msg.mvInvLevelSigma2.push_back(pKF->mvInvLevelSigma2[i]);
+    }
+
     if(command == 0){
-        for(int i = 0 ; i < pKF->mvuRight.size(); i++){
+        for(int i = 0; i < pKF->mvuRight.size(); i++){
             msg.mvuRight.push_back(pKF->mvuRight[i]);
         }
         for(int i = 0; i < pKF->mvDepth.size(); i++){
@@ -161,6 +169,7 @@ void SendClassToServer::RunMapPoint(int command){
     msg.mnFirstKFid = pMP->mnFirstKFid;
     msg.mnFirstFrame = pMP->mnFirstFrame;
     msg.nObs = pMP->nObs;
+
     mp_data_pub.publish(msg);
 }
 
@@ -189,6 +198,20 @@ void SendClassToServer::RunMapPoint(MapPoint* _pMP, int command){
     msg.mnFirstKFid = _pMP->mnFirstKFid;
     msg.mnFirstFrame = _pMP->mnFirstFrame;
     msg.nObs = _pMP->nObs;
+
+    msg.mTrackProjX = _pMP->mTrackProjX;
+    msg.mTrackProjY = _pMP->mTrackProjY;
+    msg.mTrackProjXR = _pMP->mTrackProjXR;
+    msg.mbTrackInView = _pMP->mbTrackInView;
+    msg.mnTrackScaleLevel = _pMP->mnTrackScaleLevel;
+    msg.mTrackViewCos = _pMP->mTrackViewCos;
+    msg.mnTrackReferenceForFrame = _pMP->mnTrackReferenceForFrame;
+
+    msg.mnVisible = _pMP->GetVisible();
+    msg.mnFound = _pMP->GetFound();
+    msg.mfMinDistance = _pMP->GetMinDistanceInvariance()/0.8f;
+    msg.mfMaxDistance = _pMP->GetMaxDistanceInvariance()/1.2f;
+
     mp_data_pub.publish(msg);
 }
 

@@ -56,6 +56,7 @@ public:
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);
+    void SetObservation();
     void EraseObservation(KeyFrame* pKF);
 
     int GetIndexInKeyFrame(KeyFrame* pKF);
@@ -84,6 +85,8 @@ public:
     float GetMaxDistanceInvariance();
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
+    int GetVisible();
+    int GetmnFound();
 
 public:
     // for serialization
