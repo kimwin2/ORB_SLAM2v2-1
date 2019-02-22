@@ -137,6 +137,35 @@ public:
 };
 
 void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
+    ifstream in(mapBinaryPath, std::ios_base::binary);
+    Map *mpMap = new Map();
+    if (!in)
+    {
+        cerr << "Cannot Open Mapfile: " << mapBinaryPath << " , You need create it first!" << std::endl;
+        return;
+    }
+
+    {
+        boost::archive::binary_iarchive ia(in, boost::archive::no_header);
+        ia >> mpMap;
+    }
+
+    ostringstream sarray;
+    {
+        boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
+        oa << mpMap;
+    }
+    
+    cout << "Serialized!" << endl;
+
+    std_msgs::String map_msg;
+    map_msg.data = sarray.str();
+    client_map_pub.publish(map_msg);
+
+    cout << "Done!" << endl;
+}
+/*
+void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
     cout << "Creating new map" << endl;
     Map *mpMap = new Map();
     map<unsigned int, MapPoint*> mspMapPoints;
@@ -194,7 +223,7 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
 
     cout << "Done!" << endl;
 }
-
+*/
 }
 
 using namespace ORB_SLAM2;
@@ -211,7 +240,7 @@ int main(int argc, char *argv[]){
     nh.param("ClientId", ClientId, ClientId);
     nh.param("mapBinaryPath", mapBinaryPath, mapBinaryPath);
 
-    params.setMapBinaryPath((mapBinaryPath + "server" +  to_string(ClientId)).c_str());
+    params.setMapBinaryPath(mapBinaryPath.c_str());
     params.setNodeHandle(n);
     params.setClientId(ClientId);
 
