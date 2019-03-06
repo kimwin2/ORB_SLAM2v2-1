@@ -12,14 +12,22 @@
 #include <ORB_SLAM2v2/KF.h>
 #include "std_msgs/String.h"
 #include <boost/bind.hpp>
+#include <boost/asio.hpp>
 #include <thread>
 #include <string>
 #include "BoostArchiver.h"
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <octomap/octomap.h>
 
 #define NUMBER_OF_CLIENTS 1
 #define INSERT 0
 #define ERASE 1
 #define UPDATE 2
+
+using boost::asio::ip::tcp;
 
 namespace ORB_SLAM2{
 
@@ -41,8 +49,10 @@ public:
         mServerViewer = new ServerViewer(sm, params, mpSMapDrawer, argv2);
         string cmp = "CLIENT_MAP" + to_string(params.getClientId());
         client_map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmp,1000);
-        new thread(&ServerViewer::Run,mServerViewer);
         mapBinaryPath = params.getMapBinaryPath();
+        mapOctomapPath = params.getMapOctomapPath();
+        clientId = params.getClientId();
+        new thread(&ServerViewer::Run,mServerViewer);
         cout << "Communicator Created" << endl;
     }
 
@@ -120,7 +130,12 @@ public:
             sm->UpdateMapPoint(new ServerMapPoint(msg));
     }
 
+    void Shutdown(){
+
+    }
+
     void SendMap(const std_msgs::String::ConstPtr& msg);
+    void CreateOctomap(const std_msgs::String::ConstPtr& msg);
 
     ServerMap *sm;
     MapDrawer *mpSMapDrawer;
@@ -131,6 +146,9 @@ public:
     ros::Subscriber mp_sub;
     ros::Publisher client_map_pub;
     const char* mapBinaryPath;
+    const char* mapOctomapPath;
+    int clientId;
+    bool isStop = false;
 
     int mnId = 0;
 
@@ -164,66 +182,45 @@ void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
 
     cout << "Done!" << endl;
 }
-/*
-void Communicator::SendMap(const std_msgs::String::ConstPtr& msg){
-    cout << "Creating new map" << endl;
+
+void Communicator::CreateOctomap(const std_msgs::String::ConstPtr& msg){
+    ifstream in(mapBinaryPath, std::ios_base::binary);
     Map *mpMap = new Map();
-    map<unsigned int, MapPoint*> mspMapPoints;
-    map<unsigned int, KeyFrame*> mspKeyFrames;
-    map<unsigned int, ServerMapPoint*> mspSMP = sm->GetAllMapPoints();
-    map<unsigned int, ServerKeyFrame*> mspSKF = sm->GetAllKeyFrames();
-    for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
-        KeyFrame *pKF = new KeyFrame(itx->second, mpMap);
-        if(pKF==NULL)
-            continue;
-        mspKeyFrames.insert({itx->first, pKF});
-    }
-    for(map<unsigned int,ServerMapPoint*>::iterator itx = mspSMP.begin(); itx != mspSMP.end(); itx++){
-        MapPoint *pMP = new MapPoint(itx->second, mpMap);
-        map<unsigned int, unsigned int> mObs = itx->second->mObservations;
-        for(map<unsigned int, unsigned int>::iterator itor = mObs.begin(); itor != mObs.end(); itor++){
-            KeyFrame *pKF = mspKeyFrames[itor->first];
-            if(pKF){
-                pMP->AddObservation(pKF,itor->second);
-                pKF->AddMapPoint(pMP, itor->second);
-                mspMapPoints.insert({itx->first, pMP});
-            }
-        }
-        pMP->SetObservation();
-    }
-    cout << "mspMapPoints.insert" << endl;
-    for(map<unsigned int,ServerKeyFrame*>::iterator itx = mspSKF.begin(); itx != mspSKF.end(); itx++){
-        KeyFrame *pKF = mspKeyFrames[itx->first];
-        if(itx->second->parentId != -1){
-            KeyFrame *parentKF = mspKeyFrames[itx->second->parentId];
-            if(parentKF){
-                pKF->ChangeParent(parentKF);
-                parentKF->AddChild(pKF);
-            }
-        }
-    }
-
-    mpMap->AddKeyFrame(mspKeyFrames);
-    mpMap->AddMapPoint(mspMapPoints);
-    mpMap->mvpKeyFrameOrigins.push_back(mspKeyFrames[sm->GetKeyFrameOrigin()]);
-
-    cout << "Strat to serialize" << endl;
-    
-    ostringstream sarray;
+    if (!in)
     {
-        boost::archive::binary_oarchive oa(sarray, boost::archive::no_header);
-        oa << mpMap;
+        cerr << "Cannot Open Mapfile: " << mapBinaryPath << " , You need create it first!" << std::endl;
+        return;
     }
-    
-    cout << "Serialized!" << endl;
 
-    std_msgs::String map_msg;
-    map_msg.data = sarray.str();
-    client_map_pub.publish(map_msg);
+    {
+        boost::archive::binary_iarchive ia(in, boost::archive::no_header);
+        ia >> mpMap;
+    }
 
-    cout << "Done!" << endl;
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    vector<MapPoint*> mvpMP = mpMap->GetAllMapPoints();
+
+    for(vector<MapPoint*>::iterator itx = mvpMP.begin(); itx != mvpMP.end(); itx++){
+        cv::Mat Tworld = (*itx)->GetWorldPos();
+        pcl::PointXYZRGB p;
+        p.x = 20 * Tworld.at<float>(0,0);
+        p.y = 20 * Tworld.at<float>(0,1);
+        p.z = 20 * Tworld.at<float>(0,2);
+        cloud.points.push_back(p);
+    }
+
+    octomap::OcTree tree( 0.3 );
+    for (auto p:cloud.points)
+    {
+        // Insert the point of Point Cloud to octomap
+        tree.updateNode( octomap::point3d(p.x, p.y, p.z), true );
+    }
+    tree.updateInnerOccupancy();
+    tree.writeBinary(mapOctomapPath);
+
+    cout << "Octomap Created!" << endl;
 }
-*/
+
 }
 
 using namespace ORB_SLAM2;
@@ -237,10 +234,13 @@ int main(int argc, char *argv[]){
     ORBParams params;
     int ClientId=2;
     string mapBinaryPath;
+    string mapOctomapPath;
     nh.param("ClientId", ClientId, ClientId);
     nh.param("mapBinaryPath", mapBinaryPath, mapBinaryPath);
+    nh.param("mapOctomapPath", mapOctomapPath, mapOctomapPath);
 
     params.setMapBinaryPath(mapBinaryPath.c_str());
+    params.setMapOctomapPath(mapOctomapPath.c_str());
     params.setNodeHandle(n);
     params.setClientId(ClientId);
 
@@ -251,6 +251,7 @@ int main(int argc, char *argv[]){
     string kfDataName = "KEYFRAME_" + to_string(ClientId);
     string mpDataName = "MAPPOINT_" + to_string(ClientId);
     string cmr = "CREATE_MAP_REQUEST" + to_string(ClientId);
+    string cor = "CREATE_OCTOMAP_REQUEST" + to_string(ClientId);
 
     ros::Subscriber kf_sub = n.subscribe(kfName, 1000, &Communicator::KeyFrameCallback, &ccom);
     ros::Subscriber mp_sub = n.subscribe(mpName, 1000, &Communicator::MapPointCallback, &ccom);
@@ -258,8 +259,11 @@ int main(int argc, char *argv[]){
     ros::Subscriber mp_data_sub = n.subscribe(mpDataName, 1000, &Communicator::MapPointData, &ccom);
 
     ros::Subscriber create_map_request = n.subscribe(cmr, 1000, &Communicator::SendMap, &ccom);
+    ros::Subscriber create_octomap_request = n.subscribe(cor, 1000, &Communicator::CreateOctomap, &ccom);
 
     ros::spin();
+    ccom.Shutdown();
+    ros::shutdown();
 
     return 0;
 }

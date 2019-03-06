@@ -51,8 +51,11 @@ ServerViewer::ServerViewer(ServerMap *pSMap, ORBParams params, MapDrawer *pSMapD
 
     clientId = params.getClientId();
     mapBinaryPath = params.getMapBinaryPath();
+    mapOctomapPath = params.getMapOctomapPath();
     string cmr = "CREATE_MAP_REQUEST" + to_string(clientId);
+    string cor = "CREATE_OCTOMAP_REQUEST" + to_string(clientId);
     map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmr, 1000);
+    octomap_pub = params.getNodeHandle().advertise<std_msgs::String>(cor, 1000);
 }
 
 void ServerViewer::Run()
@@ -74,6 +77,7 @@ void ServerViewer::Run()
     pangolin::Var<bool> menuReset("menu.Reset", false, false);
     pangolin::Var<bool> menuSave("menu.Save", false, false);
     pangolin::Var<bool> menuSend("menu.Send", false, false);
+    pangolin::Var<bool> menuCreateOctomap("menu.Create Octomap", false, false);
 
     // Define Camera Render Object (for view / scene browsing)
     pangolin::OpenGlRenderState s_cam(
@@ -188,6 +192,13 @@ void ServerViewer::Run()
             cout << msg.data << endl;
             map_pub.publish(msg);
             menuSend = false;
+        }
+
+        if (menuCreateOctomap){
+            std_msgs::String msg;
+            msg.data = "Create Octomap!";
+            octomap_pub.publish(msg);
+            menuCreateOctomap = false;
         }
     }
 }
