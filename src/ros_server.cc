@@ -7,10 +7,13 @@
 #include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
+#include "PointCloudTransform.h"
 
 #include <ORB_SLAM2v2/MP.h>
 #include <ORB_SLAM2v2/KF.h>
 #include "std_msgs/String.h"
+#include "octomap_msgs/Octomap.h"
+#include "octomap_msgs/conversions.h"
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <thread>
@@ -49,6 +52,8 @@ public:
         mServerViewer = new ServerViewer(sm, params, mpSMapDrawer, argv2);
         string cmp = "CLIENT_MAP" + to_string(params.getClientId());
         client_map_pub = params.getNodeHandle().advertise<std_msgs::String>(cmp,1000);
+        //Test for octomap_rviz
+        octomap_rviz = params.getNodeHandle().advertise<octomap_msgs::Octomap>("octomap_rviz",1);
         mapBinaryPath = params.getMapBinaryPath();
         mapOctomapPath = params.getMapOctomapPath();
         clientId = params.getClientId();
@@ -145,6 +150,7 @@ public:
     ros::Subscriber kf_sub;
     ros::Subscriber mp_sub;
     ros::Publisher client_map_pub;
+    ros::Publisher octomap_rviz;
     const char* mapBinaryPath;
     const char* mapOctomapPath;
     int clientId;
@@ -197,26 +203,35 @@ void Communicator::CreateOctomap(const std_msgs::String::ConstPtr& msg){
         ia >> mpMap;
     }
 
-    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>());
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr transformed_cloud;
     vector<MapPoint*> mvpMP = mpMap->GetAllMapPoints();
 
     for(vector<MapPoint*>::iterator itx = mvpMP.begin(); itx != mvpMP.end(); itx++){
         cv::Mat Tworld = (*itx)->GetWorldPos();
-        pcl::PointXYZRGB p;
-        p.x = 20 * Tworld.at<float>(0,0);
-        p.y = 20 * Tworld.at<float>(0,1);
-        p.z = 20 * Tworld.at<float>(0,2);
-        cloud.points.push_back(p);
+        pcl::PointXYZRGBA p;
+        p.x = 5 * Tworld.at<float>(0,0);
+        p.y = 5 * Tworld.at<float>(0,1);
+        p.z = 5 * Tworld.at<float>(0,2);
+        cloud->points.push_back(p);
     }
 
-    octomap::OcTree tree( 0.3 );
-    for (auto p:cloud.points)
+    PointCloudTransform Pct(cloud);
+
+    transformed_cloud = Pct.transform();
+
+    octomap::OcTree tree( 0.2 );
+    for (auto p:transformed_cloud->points)
     {
         // Insert the point of Point Cloud to octomap
         tree.updateNode( octomap::point3d(p.x, p.y, p.z), true );
     }
     tree.updateInnerOccupancy();
     tree.writeBinary(mapOctomapPath);
+
+    octomap_msgs::Octomap oct_msg;
+    octomap_msgs::binaryMapToMsg(tree, oct_msg);
+    octomap_rviz.publish(oct_msg);
 
     cout << "Octomap Created!" << endl;
 }

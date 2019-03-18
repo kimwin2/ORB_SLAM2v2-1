@@ -251,6 +251,7 @@ src/ros_server.cc
 src/ServerMap.cc
 src/ServerViewer.cc
 src/StreamThread.cc
+src/PointCloudTransform.cc
 )
 
 target_link_libraries(server_node
