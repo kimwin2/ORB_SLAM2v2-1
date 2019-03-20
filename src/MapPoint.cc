@@ -74,7 +74,7 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
 
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
-    mnId=nNextId++;
+    //mnId=nNextId++;
 }
 
 void MapPoint::SetWorldPos(const cv::Mat &Pos)
@@ -137,6 +137,14 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
             if(mpRefKF==pKF)
                 mpRefKF=mObservations.begin()->first;
 
+            cout << "nObs : " << nObs << endl;
+            cout << "mObservations size : " << mObservations.size() << endl;
+            if(mpRefKF==NULL){
+                cout << "mpRefKF : NULL" << endl;
+            }else{
+                cout << "mpRefKF : " << mpRefKF->mnId << endl;
+            }
+
             // If only 2 observations or less, discard point
             if(nObs<=2)
                 bBad=true;
@@ -174,7 +182,6 @@ void MapPoint::SetBadFlag()
         KeyFrame* pKF = mit->first;
         pKF->EraseMapPointMatch(mit->second);
     }
-
     mpMap->EraseMapPoint(this);
 }
 
@@ -222,7 +229,7 @@ void MapPoint::Replace(MapPoint* pMP)
     pMP->IncreaseVisible(nvisible);
     pMP->ComputeDistinctiveDescriptors();
 
-    mpMap->EraseMapPoint(this);
+    unique_lock<mutex> lock(mGlobalMutex);
 }
 
 bool MapPoint::isBad()
@@ -351,6 +358,23 @@ void MapPoint::UpdateNormalAndDepth()
         observations=mObservations;
         pRefKF=mpRefKF;
         Pos = mWorldPos.clone();
+    }
+    if(mpRefKF == NULL){
+        for(map<KeyFrame*,size_t>::iterator mit = observations.begin(), mend = observations.end(); mit!=mend; mit++){
+            if(mit->first == NULL){
+                cout << "[mpRefKF = NULL]: observations : NULL" << endl;
+                cout << "UID : " << UID << endl;
+                cout << "nNextId : " << nNextId << endl;
+            }
+            else
+            {
+                cout << "[mpRefKF = NULL]: observations : " << mit->first->mnId << endl;
+                cout << "UID : " << UID << endl;
+                cout << "nNextId : " << nNextId << endl;
+                cout << "isBad : " << mbBad << endl;
+            }
+            
+        }
     }
 
     if(observations.empty())
